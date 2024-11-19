@@ -1,0 +1,94 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+dC:/DESL/Quartus18/modelsim_ase/win32aloem
+vscore_system_tb
+Z0 !s110 1732006487
+!i10b 1
+!s100 EI<@_E<FPcSbXTO4]TTQC3
+IjgYM84CLENST<X:NN4nh>0
+Z1 VDg1SIo80bB@j0V0VzS_@n1
+Z2 dC:/score_test
+w1732006391
+8C:/score_test/score_system_tb.v
+FC:/score_test/score_system_tb.v
+L0 3
+Z3 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z4 !s108 1732006487.000000
+!s107 C:/score_test/score_system_tb.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/score_test/score_system_tb.v|
+!i113 1
+Z5 o-work work
+Z6 tCvgOpt 0
+vscore_system_test
+R0
+!i10b 1
+!s100 ;B7>]V8WlK[h1hGjC[6hg1
+IY@Aeh[_E7hLDH3d6md2Sk3
+R1
+R2
+w1732004646
+8C:/score_test/score_system_test.v
+FC:/score_test/score_system_test.v
+L0 1
+R3
+r1
+!s85 0
+31
+R4
+!s107 C:/score_test/score_system_test.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/score_test/score_system_test.v|
+!i113 1
+R5
+R6
+vscore_tracker
+R0
+!i10b 1
+!s100 O:j^8fBX4ZN6AOa8ndK1Y1
+I[O:ARokoboSdU7RC0[X_<3
+R1
+R2
+w1732006298
+8C:/score_test/score_tracker.v
+FC:/score_test/score_tracker.v
+L0 1
+R3
+r1
+!s85 0
+31
+R4
+!s107 C:/score_test/score_tracker.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/score_test/score_tracker.v|
+!i113 1
+R5
+R6
+vwinner_selector
+R0
+!i10b 1
+!s100 ;FJ<oZ:lGb5P`E3K1H^Ah2
+Id4:RB:9jzEH2BLV>GUL@;0
+R1
+R2
+w1732006319
+8C:/score_test/winner_selector.v
+FC:/score_test/winner_selector.v
+L0 1
+R3
+r1
+!s85 0
+31
+R4
+!s107 C:/score_test/winner_selector.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/score_test/winner_selector.v|
+!i113 1
+R5
+R6

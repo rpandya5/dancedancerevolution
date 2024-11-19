@@ -1,0 +1,903 @@
+$date
+	Tue Nov 19 03:55:41 2024
+$end
+$version
+	ModelSim Version 10.5b
+$end
+$timescale
+	1ps
+$end
+
+$scope module score_system_tb $end
+$var parameter 20 ! PERFECT_WINDOW $end
+$var parameter 20 " GOOD_WINDOW $end
+$var parameter 20 # TOTAL_WINDOW $end
+$var parameter 14 $ PERFECT_POINTS $end
+$var parameter 14 % GOOD_POINTS $end
+$var parameter 14 & PENALTY_POINTS $end
+$var parameter 4 ' UP $end
+$var parameter 4 ( DOWN $end
+$var parameter 4 ) LEFT $end
+$var parameter 4 * RIGHT $end
+$var parameter 4 + NONE $end
+$var reg 1 , clock $end
+$var reg 1 - reset $end
+$var reg 1 . game_active $end
+$var reg 1 / game_over $end
+$var reg 4 0 a_input [3:0] $end
+$var reg 4 1 b_input [3:0] $end
+$var reg 4 2 pattern_a [3:0] $end
+$var reg 4 3 pattern_b [3:0] $end
+$var reg 1 4 pattern_valid $end
+$var reg 20 5 pattern_timer [19:0] $end
+$var wire 1 6 score_a [13] $end
+$var wire 1 7 score_a [12] $end
+$var wire 1 8 score_a [11] $end
+$var wire 1 9 score_a [10] $end
+$var wire 1 : score_a [9] $end
+$var wire 1 ; score_a [8] $end
+$var wire 1 < score_a [7] $end
+$var wire 1 = score_a [6] $end
+$var wire 1 > score_a [5] $end
+$var wire 1 ? score_a [4] $end
+$var wire 1 @ score_a [3] $end
+$var wire 1 A score_a [2] $end
+$var wire 1 B score_a [1] $end
+$var wire 1 C score_a [0] $end
+$var wire 1 D score_b [13] $end
+$var wire 1 E score_b [12] $end
+$var wire 1 F score_b [11] $end
+$var wire 1 G score_b [10] $end
+$var wire 1 H score_b [9] $end
+$var wire 1 I score_b [8] $end
+$var wire 1 J score_b [7] $end
+$var wire 1 K score_b [6] $end
+$var wire 1 L score_b [5] $end
+$var wire 1 M score_b [4] $end
+$var wire 1 N score_b [3] $end
+$var wire 1 O score_b [2] $end
+$var wire 1 P score_b [1] $end
+$var wire 1 Q score_b [0] $end
+$var wire 1 R last_hit_a [1] $end
+$var wire 1 S last_hit_a [0] $end
+$var wire 1 T last_hit_b [1] $end
+$var wire 1 U last_hit_b [0] $end
+$var wire 1 V winner [1] $end
+$var wire 1 W winner [0] $end
+$var wire 1 X final_score_a [13] $end
+$var wire 1 Y final_score_a [12] $end
+$var wire 1 Z final_score_a [11] $end
+$var wire 1 [ final_score_a [10] $end
+$var wire 1 \ final_score_a [9] $end
+$var wire 1 ] final_score_a [8] $end
+$var wire 1 ^ final_score_a [7] $end
+$var wire 1 _ final_score_a [6] $end
+$var wire 1 ` final_score_a [5] $end
+$var wire 1 a final_score_a [4] $end
+$var wire 1 b final_score_a [3] $end
+$var wire 1 c final_score_a [2] $end
+$var wire 1 d final_score_a [1] $end
+$var wire 1 e final_score_a [0] $end
+$var wire 1 f final_score_b [13] $end
+$var wire 1 g final_score_b [12] $end
+$var wire 1 h final_score_b [11] $end
+$var wire 1 i final_score_b [10] $end
+$var wire 1 j final_score_b [9] $end
+$var wire 1 k final_score_b [8] $end
+$var wire 1 l final_score_b [7] $end
+$var wire 1 m final_score_b [6] $end
+$var wire 1 n final_score_b [5] $end
+$var wire 1 o final_score_b [4] $end
+$var wire 1 p final_score_b [3] $end
+$var wire 1 q final_score_b [2] $end
+$var wire 1 r final_score_b [1] $end
+$var wire 1 s final_score_b [0] $end
+
+$scope module dut $end
+$var wire 1 t clock $end
+$var wire 1 u reset $end
+$var wire 1 v game_active $end
+$var wire 1 w game_over $end
+$var wire 1 x a_input [3] $end
+$var wire 1 y a_input [2] $end
+$var wire 1 z a_input [1] $end
+$var wire 1 { a_input [0] $end
+$var wire 1 | b_input [3] $end
+$var wire 1 } b_input [2] $end
+$var wire 1 ~ b_input [1] $end
+$var wire 1 !! b_input [0] $end
+$var wire 1 "! pattern_a [3] $end
+$var wire 1 #! pattern_a [2] $end
+$var wire 1 $! pattern_a [1] $end
+$var wire 1 %! pattern_a [0] $end
+$var wire 1 &! pattern_b [3] $end
+$var wire 1 '! pattern_b [2] $end
+$var wire 1 (! pattern_b [1] $end
+$var wire 1 )! pattern_b [0] $end
+$var wire 1 *! pattern_valid $end
+$var wire 1 +! pattern_timer [19] $end
+$var wire 1 ,! pattern_timer [18] $end
+$var wire 1 -! pattern_timer [17] $end
+$var wire 1 .! pattern_timer [16] $end
+$var wire 1 /! pattern_timer [15] $end
+$var wire 1 0! pattern_timer [14] $end
+$var wire 1 1! pattern_timer [13] $end
+$var wire 1 2! pattern_timer [12] $end
+$var wire 1 3! pattern_timer [11] $end
+$var wire 1 4! pattern_timer [10] $end
+$var wire 1 5! pattern_timer [9] $end
+$var wire 1 6! pattern_timer [8] $end
+$var wire 1 7! pattern_timer [7] $end
+$var wire 1 8! pattern_timer [6] $end
+$var wire 1 9! pattern_timer [5] $end
+$var wire 1 :! pattern_timer [4] $end
+$var wire 1 ;! pattern_timer [3] $end
+$var wire 1 <! pattern_timer [2] $end
+$var wire 1 =! pattern_timer [1] $end
+$var wire 1 >! pattern_timer [0] $end
+$var wire 1 6 score_a [13] $end
+$var wire 1 7 score_a [12] $end
+$var wire 1 8 score_a [11] $end
+$var wire 1 9 score_a [10] $end
+$var wire 1 : score_a [9] $end
+$var wire 1 ; score_a [8] $end
+$var wire 1 < score_a [7] $end
+$var wire 1 = score_a [6] $end
+$var wire 1 > score_a [5] $end
+$var wire 1 ? score_a [4] $end
+$var wire 1 @ score_a [3] $end
+$var wire 1 A score_a [2] $end
+$var wire 1 B score_a [1] $end
+$var wire 1 C score_a [0] $end
+$var wire 1 D score_b [13] $end
+$var wire 1 E score_b [12] $end
+$var wire 1 F score_b [11] $end
+$var wire 1 G score_b [10] $end
+$var wire 1 H score_b [9] $end
+$var wire 1 I score_b [8] $end
+$var wire 1 J score_b [7] $end
+$var wire 1 K score_b [6] $end
+$var wire 1 L score_b [5] $end
+$var wire 1 M score_b [4] $end
+$var wire 1 N score_b [3] $end
+$var wire 1 O score_b [2] $end
+$var wire 1 P score_b [1] $end
+$var wire 1 Q score_b [0] $end
+$var wire 1 R last_hit_a [1] $end
+$var wire 1 S last_hit_a [0] $end
+$var wire 1 T last_hit_b [1] $end
+$var wire 1 U last_hit_b [0] $end
+$var wire 1 V winner [1] $end
+$var wire 1 W winner [0] $end
+$var wire 1 X final_score_a [13] $end
+$var wire 1 Y final_score_a [12] $end
+$var wire 1 Z final_score_a [11] $end
+$var wire 1 [ final_score_a [10] $end
+$var wire 1 \ final_score_a [9] $end
+$var wire 1 ] final_score_a [8] $end
+$var wire 1 ^ final_score_a [7] $end
+$var wire 1 _ final_score_a [6] $end
+$var wire 1 ` final_score_a [5] $end
+$var wire 1 a final_score_a [4] $end
+$var wire 1 b final_score_a [3] $end
+$var wire 1 c final_score_a [2] $end
+$var wire 1 d final_score_a [1] $end
+$var wire 1 e final_score_a [0] $end
+$var wire 1 f final_score_b [13] $end
+$var wire 1 g final_score_b [12] $end
+$var wire 1 h final_score_b [11] $end
+$var wire 1 i final_score_b [10] $end
+$var wire 1 j final_score_b [9] $end
+$var wire 1 k final_score_b [8] $end
+$var wire 1 l final_score_b [7] $end
+$var wire 1 m final_score_b [6] $end
+$var wire 1 n final_score_b [5] $end
+$var wire 1 o final_score_b [4] $end
+$var wire 1 p final_score_b [3] $end
+$var wire 1 q final_score_b [2] $end
+$var wire 1 r final_score_b [1] $end
+$var wire 1 s final_score_b [0] $end
+$var wire 1 ?! score_a_wire [13] $end
+$var wire 1 @! score_a_wire [12] $end
+$var wire 1 A! score_a_wire [11] $end
+$var wire 1 B! score_a_wire [10] $end
+$var wire 1 C! score_a_wire [9] $end
+$var wire 1 D! score_a_wire [8] $end
+$var wire 1 E! score_a_wire [7] $end
+$var wire 1 F! score_a_wire [6] $end
+$var wire 1 G! score_a_wire [5] $end
+$var wire 1 H! score_a_wire [4] $end
+$var wire 1 I! score_a_wire [3] $end
+$var wire 1 J! score_a_wire [2] $end
+$var wire 1 K! score_a_wire [1] $end
+$var wire 1 L! score_a_wire [0] $end
+$var wire 1 M! score_b_wire [13] $end
+$var wire 1 N! score_b_wire [12] $end
+$var wire 1 O! score_b_wire [11] $end
+$var wire 1 P! score_b_wire [10] $end
+$var wire 1 Q! score_b_wire [9] $end
+$var wire 1 R! score_b_wire [8] $end
+$var wire 1 S! score_b_wire [7] $end
+$var wire 1 T! score_b_wire [6] $end
+$var wire 1 U! score_b_wire [5] $end
+$var wire 1 V! score_b_wire [4] $end
+$var wire 1 W! score_b_wire [3] $end
+$var wire 1 X! score_b_wire [2] $end
+$var wire 1 Y! score_b_wire [1] $end
+$var wire 1 Z! score_b_wire [0] $end
+
+$scope module score_track $end
+$var parameter 20 [! PERFECT_WINDOW $end
+$var parameter 20 \! GOOD_WINDOW $end
+$var parameter 20 ]! TOTAL_WINDOW $end
+$var parameter 14 ^! PERFECT_POINTS $end
+$var parameter 14 _! GOOD_POINTS $end
+$var parameter 14 `! PENALTY_POINTS $end
+$var wire 1 t clock $end
+$var wire 1 u reset $end
+$var wire 1 v game_active $end
+$var wire 1 x a_input [3] $end
+$var wire 1 y a_input [2] $end
+$var wire 1 z a_input [1] $end
+$var wire 1 { a_input [0] $end
+$var wire 1 | b_input [3] $end
+$var wire 1 } b_input [2] $end
+$var wire 1 ~ b_input [1] $end
+$var wire 1 !! b_input [0] $end
+$var wire 1 "! pattern_a [3] $end
+$var wire 1 #! pattern_a [2] $end
+$var wire 1 $! pattern_a [1] $end
+$var wire 1 %! pattern_a [0] $end
+$var wire 1 &! pattern_b [3] $end
+$var wire 1 '! pattern_b [2] $end
+$var wire 1 (! pattern_b [1] $end
+$var wire 1 )! pattern_b [0] $end
+$var wire 1 *! pattern_valid $end
+$var wire 1 +! pattern_timer [19] $end
+$var wire 1 ,! pattern_timer [18] $end
+$var wire 1 -! pattern_timer [17] $end
+$var wire 1 .! pattern_timer [16] $end
+$var wire 1 /! pattern_timer [15] $end
+$var wire 1 0! pattern_timer [14] $end
+$var wire 1 1! pattern_timer [13] $end
+$var wire 1 2! pattern_timer [12] $end
+$var wire 1 3! pattern_timer [11] $end
+$var wire 1 4! pattern_timer [10] $end
+$var wire 1 5! pattern_timer [9] $end
+$var wire 1 6! pattern_timer [8] $end
+$var wire 1 7! pattern_timer [7] $end
+$var wire 1 8! pattern_timer [6] $end
+$var wire 1 9! pattern_timer [5] $end
+$var wire 1 :! pattern_timer [4] $end
+$var wire 1 ;! pattern_timer [3] $end
+$var wire 1 <! pattern_timer [2] $end
+$var wire 1 =! pattern_timer [1] $end
+$var wire 1 >! pattern_timer [0] $end
+$var reg 14 a! score_a [13:0] $end
+$var reg 14 b! score_b [13:0] $end
+$var reg 2 c! last_hit_a [1:0] $end
+$var reg 2 d! last_hit_b [1:0] $end
+$var reg 4 e! prev_a_input [3:0] $end
+$var reg 4 f! prev_b_input [3:0] $end
+$upscope $end
+
+$scope module winner_select $end
+$var wire 1 t clock $end
+$var wire 1 u reset $end
+$var wire 1 w game_over $end
+$var wire 1 ?! score_a [13] $end
+$var wire 1 @! score_a [12] $end
+$var wire 1 A! score_a [11] $end
+$var wire 1 B! score_a [10] $end
+$var wire 1 C! score_a [9] $end
+$var wire 1 D! score_a [8] $end
+$var wire 1 E! score_a [7] $end
+$var wire 1 F! score_a [6] $end
+$var wire 1 G! score_a [5] $end
+$var wire 1 H! score_a [4] $end
+$var wire 1 I! score_a [3] $end
+$var wire 1 J! score_a [2] $end
+$var wire 1 K! score_a [1] $end
+$var wire 1 L! score_a [0] $end
+$var wire 1 M! score_b [13] $end
+$var wire 1 N! score_b [12] $end
+$var wire 1 O! score_b [11] $end
+$var wire 1 P! score_b [10] $end
+$var wire 1 Q! score_b [9] $end
+$var wire 1 R! score_b [8] $end
+$var wire 1 S! score_b [7] $end
+$var wire 1 T! score_b [6] $end
+$var wire 1 U! score_b [5] $end
+$var wire 1 V! score_b [4] $end
+$var wire 1 W! score_b [3] $end
+$var wire 1 X! score_b [2] $end
+$var wire 1 Y! score_b [1] $end
+$var wire 1 Z! score_b [0] $end
+$var reg 2 g! winner [1:0] $end
+$var reg 14 h! final_score_a [13:0] $end
+$var reg 14 i! final_score_b [13:0] $end
+$var reg 1 j! scores_latched $end
+$upscope $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+0,
+0-
+0.
+0/
+b0 0
+b0 1
+b0 2
+b0 3
+04
+b0 5
+bx a!
+bx b!
+bx c!
+bx d!
+bx e!
+bx f!
+bx g!
+bx h!
+bx i!
+xj!
+b11110100001001000 !
+b111101000010010000 "
+b1111010000100100000 #
+b1010 $
+b101 %
+b101 &
+b1 '
+b10 (
+b100 )
+b1000 *
+b0 +
+b11110100001001000 [!
+b111101000010010000 \!
+b1111010000100100000 ]!
+b1010 ^!
+b101 _!
+b101 `!
+xC
+xB
+xA
+x@
+x?
+x>
+x=
+x<
+x;
+x:
+x9
+x8
+x7
+x6
+xQ
+xP
+xO
+xN
+xM
+xL
+xK
+xJ
+xI
+xH
+xG
+xF
+xE
+xD
+xS
+xR
+xU
+xT
+xW
+xV
+xe
+xd
+xc
+xb
+xa
+x`
+x_
+x^
+x]
+x\
+x[
+xZ
+xY
+xX
+xs
+xr
+xq
+xp
+xo
+xn
+xm
+xl
+xk
+xj
+xi
+xh
+xg
+xf
+xL!
+xK!
+xJ!
+xI!
+xH!
+xG!
+xF!
+xE!
+xD!
+xC!
+xB!
+xA!
+x@!
+x?!
+xZ!
+xY!
+xX!
+xW!
+xV!
+xU!
+xT!
+xS!
+xR!
+xQ!
+xP!
+xO!
+xN!
+xM!
+0>!
+0=!
+0<!
+0;!
+0:!
+09!
+08!
+07!
+06!
+05!
+04!
+03!
+02!
+01!
+00!
+0/!
+0.!
+0-!
+0,!
+0+!
+0*!
+0)!
+0(!
+0'!
+0&!
+0%!
+0$!
+0#!
+0"!
+0!!
+0~
+0}
+0|
+0{
+0z
+0y
+0x
+0w
+0v
+0u
+0t
+$end
+#10000
+1,
+1t
+0j!
+b0 g!
+0W
+0V
+#20000
+1-
+0,
+1u
+0t
+b0 a!
+b0 b!
+b0 c!
+b0 d!
+b0 e!
+b0 f!
+b0 h!
+b0 i!
+0s
+0r
+0q
+0p
+0o
+0n
+0m
+0l
+0k
+0j
+0i
+0h
+0g
+0f
+0e
+0d
+0c
+0b
+0a
+0`
+0_
+0^
+0]
+0\
+0[
+0Z
+0Y
+0X
+0U
+0T
+0S
+0R
+0Z!
+0Y!
+0X!
+0W!
+0V!
+0U!
+0T!
+0S!
+0R!
+0Q!
+0P!
+0O!
+0N!
+0M!
+0L!
+0K!
+0J!
+0I!
+0H!
+0G!
+0F!
+0E!
+0D!
+0C!
+0B!
+0A!
+0@!
+0?!
+0C
+0B
+0A
+0@
+0?
+0>
+0=
+0<
+0;
+0:
+09
+08
+07
+06
+0Q
+0P
+0O
+0N
+0M
+0L
+0K
+0J
+0I
+0H
+0G
+0F
+0E
+0D
+#30000
+1,
+1t
+#40000
+0,
+0t
+#50000
+1,
+1t
+#60000
+0-
+0,
+0u
+0t
+#70000
+1,
+1t
+#80000
+1.
+14
+b1 2
+b10 3
+0,
+1v
+1*!
+1(!
+1%!
+0t
+#90000
+1,
+1t
+#100000
+0,
+0t
+#110000
+1,
+1t
+#120000
+b1 0
+0,
+1{
+0t
+#130000
+1,
+1t
+b1 e!
+b1010 a!
+b10 c!
+1R
+1K!
+1I!
+1B
+1@
+#140000
+b0 0
+0,
+0{
+0t
+#150000
+1,
+1t
+b0 e!
+#160000
+0,
+0t
+#170000
+1,
+1t
+#180000
+b11110100001001001 5
+0,
+1>!
+1;!
+18!
+13!
+11!
+10!
+1/!
+1.!
+0t
+#190000
+1,
+1t
+#200000
+0,
+0t
+#210000
+1,
+1t
+#220000
+b10 1
+0,
+1~
+0t
+#230000
+1,
+1t
+b10 f!
+b101 b!
+b1 d!
+1U
+1Z!
+1X!
+1Q
+1O
+#240000
+b0 1
+0,
+0~
+0t
+#250000
+1,
+1t
+b0 f!
+#260000
+0,
+0t
+#270000
+1,
+1t
+#280000
+b1111010000100100001 5
+0,
+0;!
+19!
+08!
+16!
+03!
+00!
+1-!
+1,!
+0t
+#290000
+1,
+1t
+b0 c!
+b0 d!
+0U
+0R
+#300000
+0,
+0t
+#310000
+1,
+1t
+#320000
+b1 0
+b10 1
+0,
+1~
+1{
+0t
+#330000
+1,
+1t
+b1 e!
+b10 f!
+#340000
+b0 0
+b0 1
+0,
+0~
+0{
+0t
+#350000
+1,
+1t
+b0 e!
+b0 f!
+#360000
+0,
+0t
+#370000
+1,
+1t
+#380000
+b11000011010100000 5
+0,
+0>!
+17!
+06!
+15!
+14!
+01!
+0-!
+0,!
+0t
+#390000
+1,
+1t
+#400000
+0,
+0t
+#410000
+1,
+1t
+#420000
+b10 0
+0,
+1z
+0t
+#430000
+1,
+1t
+b10 e!
+b101 a!
+1L!
+0K!
+1J!
+0I!
+1C
+0B
+1A
+0@
+#440000
+b0 0
+0,
+0z
+0t
+#450000
+1,
+1t
+b0 e!
+#460000
+0,
+0t
+#470000
+1,
+1t
+#480000
+1/
+0,
+1w
+0t
+#490000
+1,
+1t
+b101 h!
+b101 i!
+b11 g!
+1j!
+1W
+1V
+1s
+1q
+1e
+1c
+#500000
+0,
+0t
+#510000
+1,
+1t
+#520000
+0,
+0t
+#530000
+1,
+1t
+#540000
+0,
+0t
+#550000
+1,
+1t
+#560000
+0,
+0t
+#570000
+1,
+1t
+#580000
+0,
+0t
+#590000
+1,
+1t
+#600000
+0,
+0t
+#610000
+1,
+1t
+#620000
+0,
+0t
+#630000
+1,
+1t
+#640000
+0,
+0t
+#650000
+1,
+1t
+#660000
+0,
+0t
+#670000
+1,
+1t
