@@ -10,12 +10,12 @@ module arrow_game(
 );
 
     // Parameters for arrow dimensions and position
-    parameter ARROW_WIDTH = 7;    // Reduced for 160x120 resolution
-    parameter ARROW_HEIGHT = 7;   // Square arrow for simplicity
+    parameter ARROW_WIDTH = 7;    
+    parameter ARROW_HEIGHT = 7;   
     parameter SCREEN_WIDTH = 160;
     parameter SCREEN_HEIGHT = 120;
-    parameter TARGET_Y = 100;     // Target line position
-    parameter HIT_RANGE = 3;      // Reduced hit range for smaller arrow
+    parameter TARGET_Y = 100;     
+    parameter HIT_RANGE = 3;      
     
     // Arrow state
     reg [7:0] arrow_x;
@@ -26,15 +26,14 @@ module arrow_game(
     // VGA signals
     wire [7:0] x;
     wire [6:0] y;
-    wire [2:0] colour;
-    wire writeEn;
+    wire [2:0] color;
     
     // Movement speed
-    parameter MOVE_SPEED = 500000; // Adjust this for desired speed
+    parameter MOVE_SPEED = 500000;
     
     // Initialize
     initial begin
-        arrow_x = 80;    // Center horizontally (160/2 - ARROW_WIDTH/2)
+        arrow_x = 80;    
         arrow_y = 0;
         arrow_active = 1;
         perfect_hit = 0;
@@ -127,11 +126,6 @@ module arrow_game(
         end
     end
     
-    // Convert 3-bit color to 8-bit per channel
-    assign VGA_R = {8{pixel_color[2]}};
-    assign VGA_G = {8{pixel_color[1]}};
-    assign VGA_B = {8{pixel_color[0]}};
-    
     // VGA adapter instantiation
     vga_adapter VGA(
         .resetn(!reset),
@@ -140,6 +134,7 @@ module arrow_game(
         .x(x),
         .y(y),
         .plot(1'b1),
+        /* Let VGA adapter drive these signals directly */
         .VGA_R(VGA_R),
         .VGA_G(VGA_G),
         .VGA_B(VGA_B),
