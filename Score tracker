@@ -1,0 +1,178 @@
+module vga_demo(CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK, HEX3, HEX2, HEX1, HEX0,  LEDR);
+	input CLOCK_50;	
+	input [9:0] SW; //SW[9] for reset
+	input [3:0] KEY; //directional inputs
+	output [6:0] HEX3, HEX2, HEX1, HEX0;
+	output [7:0] VGA_R;
+	output [7:0] VGA_G;
+	output [7:0] VGA_B;
+	output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK;
+	output [9:0] LEDR; //showing debounced outputs
+	
+	wire [3:0] buttons;
+	wire [3:0] debounced_keys;
+
+	
+	// Instantiate input processing module
+   input_processing input_proc (
+		.CLOCK_50(CLOCK_50),
+      .KEY(KEY),
+      .SW(SW),
+      .LEDR(LEDR),
+		.a_out(debounced_keys)
+   );
+	
+	// Instantiate score tracking module
+	score_tracker tracker_inst (
+        .CLOCK_50(CLOCK_50),   // System clock
+        .reset(SW[9]),         // Reset signal (connected to a KEY)
+        .key_press(debounced_keys),       // Push button inputs (KEY)
+        .HEX0(HEX0),           // Output to HEX displays
+        .HEX1(HEX1),
+        .HEX2(HEX2),
+        .HEX3(HEX3)
+    );
+
+endmodule
+
+
+//Input Processing Module
+module input_processing(
+	input CLOCK_50,		// DE1-SoC 50MHz clock
+   input [3:0] KEY,		// KEY[3:0] for directional inputs (active low)
+								// KEY[3] = up, KEY[2] = down, KEY[1] = left, KEY[0] = right
+   input [9:0] SW,		// SW[9] used for reset
+   output [9:0] LEDR,		// LEDR[3:0] shows debounced outputs
+	output reg [3:0] a_out	//Debounced outputs for external use
+);
+	
+	// Parameters
+   parameter DB = 1_000_000;  // 20ms at 50MHz (50M * 0.02)
+   
+   // Internal signals
+   wire [3:0] a_in;          // Inputs after active-low conversion
+   reg [3:0] a_led;          // LED outputs
+   wire reset;               // Reset signal
+    
+   // Convert active-low KEY inputs to active-high
+   assign a_in = ~KEY[3:0];
+   
+   // Use SW[9] for reset
+   assign reset = SW[9];
+    
+   // Connect internal LED signals to actual LEDs
+   assign LEDR[3:0] = a_led;
+   assign LEDR[9:4] = 6'b0;  // Turn off unused LEDs
+    
+   // Synchronizer registers
+   reg [3:0] a_sync1, a_sync2;  // Two flip-flops for synchronization
+    
+   // Debounce counters - one for each button
+   reg [19:0] a_count [3:0];  // 20 bits for counting to 1M
+    
+   // Current button states
+   reg [3:0] a_state;
+    
+   // Two-stage synchronizer
+   always @(posedge CLOCK_50)
+	begin
+		a_sync1 <= a_in;
+      a_sync2 <= a_sync1;
+   end
+    
+   // Debouncing and output logic
+   integer i;
+    
+   always @(posedge CLOCK_50)
+	begin
+	if (reset)
+	begin
+		a_out <= 4'b0;
+      a_led <= 4'b0;
+      a_state <= 4'b0;
+            
+      for (i = 0; i < 4; i = i + 1)
+		begin
+			a_count[i] <= 20'd0;
+      end
+	end
+   else
+	begin
+	// Check each button
+	for (i = 0; i < 4; i = i + 1)
+	begin
+		if (a_sync2[i] != a_state[i])
+		begin // Current state != previous state
+			if (a_count[i] < DB)
+				a_count[i] <= a_count[i] + 1'b1;
+			else
+			begin // Button pressed for enough time
+				a_state[i] <= a_sync2[i];
+            a_out[i] <= a_sync2[i];
+            a_led[i] <= a_sync2[i];
+            a_count[i] <= 20'd0;
+			end
+		end
+      else
+			a_count[i] <= 20'd0;  // Reset counter, no change
+	end
+	end
+	end
+endmodule
+
+module score_tracker (
+    input CLOCK_50,            // System clock
+    input reset,               // Reset signal
+    input [3:0] key_press,     // Debounced key inputs
+    output reg [6:0] HEX0,     // 7-segment display outputs
+    output reg [6:0] HEX1,
+    output reg [6:0] HEX2,
+    output reg [6:0] HEX3
+);
+
+    // Internal score counter (0-99)
+    reg [7:0] score;
+    reg [3:0] prev_keys;       // To detect rising edges
+
+    // 7-segment display patterns (active low)
+    reg [6:0] seg7 [0:9];
+    initial begin
+        seg7[0] = 7'b1000000;  // 0
+        seg7[1] = 7'b1111001;  // 1
+        seg7[2] = 7'b0100100;  // 2
+        seg7[3] = 7'b0110000;  // 3
+        seg7[4] = 7'b0011001;  // 4
+        seg7[5] = 7'b0010010;  // 5
+        seg7[6] = 7'b0000010;  // 6
+        seg7[7] = 7'b1111000;  // 7
+        seg7[8] = 7'b0000000;  // 8
+        seg7[9] = 7'b0010000;  // 9
+    end
+
+    // Score update logic
+    always @(posedge CLOCK_50 or posedge reset) begin
+        if (reset) begin
+            score <= 8'd0;     // Reset score to 0
+            prev_keys <= 4'b0; // Clear previous key states
+        end else begin
+            // Detect rising edges of key_press signals
+            if (key_press != prev_keys) begin
+                if (key_press & ~prev_keys) begin // Rising edge detected
+                    if (score < 8'd99)           // Maximum score is 99
+                        score <= score + 1;
+                end
+            end
+            prev_keys <= key_press; // Update previous key states
+        end
+    end
+
+    // Display update logic
+    always @(posedge CLOCK_50) begin
+        // Update 7-segment displays
+        HEX0 <= seg7[score % 10];  // Ones digit
+        HEX1 <= seg7[score / 10];  // Tens digit
+        HEX2 <= 7'b1111111;       // Turn off HEX2
+        HEX3 <= 7'b1111111;       // Turn off HEX3
+    end
+
+endmodule
