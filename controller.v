@@ -42,11 +42,12 @@ module controller (
     // Internal registers
     reg [5:0] next_state;
     reg [5:0] stored_state;     // For pause state return
+    reg [7:0] stored_outputs;   // Store enable signals during pause
 
     // State register - handles reset and state transitions
     always @(posedge clock or posedge reset) begin
         if (reset)
-            current_state <= STARTUP;
+            current_state <= IDLE;  // Reset goes to IDLE
         else
             current_state <= next_state;
     end
@@ -64,6 +65,16 @@ module controller (
             precise_timer <= 64'd0;
     end
 
+    // Store state and outputs before entering pause
+    always @(posedge clock) begin
+        if (!pause && current_state != PAUSE) begin  // About to enter pause
+            stored_state <= current_state;
+            stored_outputs <= {enable_title_screen, enable_title_audio, 
+                             enable_countdown_screen, enable_countdown_audio,
+                             enable_song, game_active, 1'b0, show_game_over};
+        end
+    end
+
     // Next state logic 
     always @(*) begin
         next_state = current_state;  // Default: stay in current state
@@ -72,11 +83,15 @@ module controller (
             STARTUP: begin
                 if (precise_timer >= TITLE_LENGTH)
                     next_state = IDLE;
+                if (!pause)  // Can pause during startup
+                    next_state = PAUSE;
             end
 
             IDLE: begin
                 if (!start)  // Active low - start when key0 pressed
                     next_state = COUNTDOWN;
+                if (!pause)
+                    next_state = PAUSE;
             end
 
             COUNTDOWN: begin
@@ -94,77 +109,76 @@ module controller (
             end
 
             PAUSE: begin
-                if (!pause) begin  // Active low - resume from pause
-                    next_state = stored_state;  // Return to stored state
+                if (!pause) begin  // Active low - Another pause press returns to stored state
+                    next_state = stored_state;
                 end
             end
 
             GAMEOVER: begin
                 if (!start)  // Active low - restart game when key0 pressed
                     next_state = IDLE;
+                if (!pause)
+                    next_state = PAUSE;
             end
 
-            default: next_state = STARTUP;
+            default: next_state = IDLE;  // Default to IDLE
         endcase
 
         // Global reset override
         if (reset)
-            next_state = STARTUP;
-    end
-
-    // Output logic and stored_state updates
-    always @(posedge clock) begin
-        // Store current state before entering pause
-        if (current_state != PAUSE && next_state == PAUSE)
-            stored_state <= current_state;
+            next_state = IDLE;  // Reset always goes to IDLE
     end
 
     // Output logic
     always @(*) begin
-        // Default all outputs to 0
-        enable_title_screen = 0;
-        enable_title_audio = 0;
-        enable_countdown_screen = 0;
-        enable_countdown_audio = 0;
-        enable_song = 0;
-        game_active = 0;
-        show_pause_screen = 0;
-        show_game_over = 0;
-        
-        // State-specific outputs
-        case (current_state)
-            STARTUP: begin
-                enable_title_screen = 1;
-                enable_title_audio = 1;
-            end
+        if (current_state == PAUSE) begin
+            // During pause, maintain stored outputs and add pause screen
+            {enable_title_screen, enable_title_audio, 
+             enable_countdown_screen, enable_countdown_audio,
+             enable_song, game_active, show_pause_screen, show_game_over} = 
+             stored_outputs | (8'b00000010);  // OR with pause screen bit
+        end
+        else begin
+            // Default all outputs to 0
+            enable_title_screen = 0;
+            enable_title_audio = 0;
+            enable_countdown_screen = 0;
+            enable_countdown_audio = 0;
+            enable_song = 0;
+            game_active = 0;
+            show_pause_screen = 0;
+            show_game_over = 0;
+            
+            // State-specific outputs
+            case (current_state)
+                STARTUP: begin
+                    enable_title_screen = 1;
+                    enable_title_audio = 1;
+                end
 
-            IDLE: begin
-                enable_title_screen = 1;  // Keep showing title screen
-            end
+                IDLE: begin
+                    enable_title_screen = 1;  // Keep showing title screen
+                end
 
-            COUNTDOWN: begin
-                enable_countdown_screen = 1;
-                enable_countdown_audio = 1;
-            end
+                COUNTDOWN: begin
+                    enable_countdown_screen = 1;
+                    enable_countdown_audio = 1;
+                end
 
-            PLAYING: begin
-                enable_song = 1;
-                game_active = 1;
-            end
+                PLAYING: begin
+                    enable_song = 1;
+                    game_active = 1;
+                end
 
-            PAUSE: begin
-                show_pause_screen = 1;
-            end
+                GAMEOVER: begin
+                    show_game_over = 1;
+                end
 
-            GAMEOVER: begin
-                show_game_over = 1;
-            end
-
-            default: begin
-                enable_title_screen = 1;
-                enable_title_audio = 1;
-            end
-        endcase
+                default: begin
+                    enable_title_screen = 1;
+                end
+            endcase
+        end
     end
 
 endmodule
