@@ -1,8 +1,8 @@
-// updated nov 18
+// updated nov 18 10:46pm
 
 module arrow_pattern_generator (
-    input wire clk,                    // Clock input
-    input wire rst,                    // Reset input
+    input wire clock,                    // Clock input
+    input wire reset,                    // Reset input
     input wire game_active,            // Signal from controller that game is in play state
     input wire beat_pulse,             // Timing pulse from audio/rhythm system
     
@@ -71,8 +71,8 @@ module arrow_pattern_generator (
         end
     end
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clock or posedge reset) begin
+        if (reset) begin
             lfsr <= 16'hACE1;
             current_state <= IDLE;
             pattern_valid <= 0;
