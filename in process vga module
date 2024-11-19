@@ -9,132 +9,49 @@ module arrow_game(
     output reg perfect_hit
 );
 
-    // Parameters for arrow dimensions and position
-    parameter ARROW_WIDTH = 7;    
-    parameter ARROW_HEIGHT = 7;   
-    parameter SCREEN_WIDTH = 160;
-    parameter SCREEN_HEIGHT = 120;
-    parameter TARGET_Y = 100;     
-    parameter HIT_RANGE = 3;      
-    
-    // Arrow state
-    reg [7:0] arrow_x;
-    reg [6:0] arrow_y;
-    reg arrow_active;
-    reg [19:0] move_counter;
-    
     // VGA signals
+    reg [7:0] x_pos;
+    reg [6:0] y_pos;
     wire [7:0] x;
     wire [6:0] y;
-    wire [2:0] color;
     
-    // Movement speed
-    parameter MOVE_SPEED = 500000;
-    
-    // Initialize
-    initial begin
-        arrow_x = 80;    
-        arrow_y = 0;
-        arrow_active = 1;
-        perfect_hit = 0;
-        move_counter = 0;
-    end
-    
-    // Arrow movement and gameplay logic
-    always @(posedge CLOCK_50 or posedge reset) begin
-        if (reset) begin
-            arrow_y <= 0;
-            move_counter <= 0;
-            arrow_active <= 1;
-            perfect_hit <= 0;
-            arrow_x <= 80;
-        end
-        else begin
-            perfect_hit <= 0;
-            
-            // Check for hit
-            if (key_press[3] && arrow_active) begin
-                if (arrow_y >= (TARGET_Y - HIT_RANGE) && 
-                    arrow_y <= (TARGET_Y + HIT_RANGE)) begin
-                    perfect_hit <= 1;
-                    arrow_active <= 0;
-                end
-            end
-            
-            // Move arrow
-            if (move_counter >= MOVE_SPEED) begin
-                move_counter <= 0;
-                if (arrow_active) begin
-                    if (arrow_y >= SCREEN_HEIGHT) begin
-                        arrow_y <= 0;
-                        arrow_active <= 1;
-                    end
-                    else begin
-                        arrow_y <= arrow_y + 1;
-                    end
-                end
-                else begin
-                    arrow_y <= 0;
-                    arrow_active <= 1;
-                end
-            end
-            else begin
-                move_counter <= move_counter + 1;
-            end
-        end
-    end
-    
-    // Color generation logic
+    // Simple pattern to verify display is working
     reg [2:0] pixel_color;
     
+    // Generate a simple test pattern
     always @(*) begin
-        // Default black background
+        // Default to black
         pixel_color = 3'b000;
         
-        // Draw arrow (white) when active
-        if (arrow_active && 
-            x >= arrow_x && x < (arrow_x + ARROW_WIDTH) &&
-            y >= arrow_y && y < (arrow_y + ARROW_HEIGHT)) begin
-            
-            // Center vertical line (shaft)
-            if (x == arrow_x + 3) 
-                pixel_color = 3'b111;
-            
-            // Arrow head (triangle shape)
-            else if (y == arrow_y &&                          // Top point
-                    x == arrow_x + 3)
-                pixel_color = 3'b111;
-            else if (y == arrow_y + 1 &&                      // Second row
-                    (x >= arrow_x + 2 && x <= arrow_x + 4))
-                pixel_color = 3'b111;
-            else if (y == arrow_y + 2 &&                      // Third row
-                    (x >= arrow_x + 1 && x <= arrow_x + 5))
-                pixel_color = 3'b111;
-            
-            // Arrow tail (inverted triangle)
-            else if (y == arrow_y + 6 &&                      // Bottom row
-                    (x >= arrow_x + 1 && x <= arrow_x + 5))
-                pixel_color = 3'b111;
-            else if (y == arrow_y + 5 &&                      // Second from bottom
-                    (x >= arrow_x + 2 && x <= arrow_x + 4))
-                pixel_color = 3'b111;
+        // Draw a white rectangle in the middle of the screen
+        if (x >= 70 && x <= 90 && y >= 50 && y <= 70) begin
+            pixel_color = 3'b111;  // White
         end
         
-        // Target line (blue)
-        else if (y == TARGET_Y) begin
-            pixel_color = 3'b001;
+        // Draw the blue target line
+        if (y == 100) begin
+            pixel_color = 3'b001;  // Blue
+        end
+        
+        // Draw red borders to see screen boundaries
+        if (x == 0 || x == 159 || y == 0 || y == 119) begin
+            pixel_color = 3'b100;  // Red
         end
     end
     
-    // VGA adapter instantiation
-    vga_adapter VGA(
+    // Instantiate VGA adapter
+    vga_adapter #(
+        .RESOLUTION("160x120"),
+        .MONOCHROME("FALSE"),
+        .BITS_PER_COLOUR_CHANNEL(1),
+        .BACKGROUND_IMAGE("black.mif")
+    ) VGA(
         .resetn(!reset),
         .clock(CLOCK_50),
         .colour(pixel_color),
         .x(x),
         .y(y),
         .plot(1'b1),
-        /* Let VGA adapter drive these signals directly */
         .VGA_R(VGA_R),
         .VGA_G(VGA_G),
         .VGA_B(VGA_B),
@@ -144,10 +61,5 @@ module arrow_game(
         .VGA_SYNC_N(VGA_SYNC_N),
         .VGA_CLK(VGA_CLK)
     );
-    
-    defparam VGA.RESOLUTION = "160x120";
-    defparam VGA.MONOCHROME = "FALSE";
-    defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-    defparam VGA.BACKGROUND_IMAGE = "black.mif";
 
 endmodule
