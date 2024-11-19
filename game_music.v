@@ -1,4 +1,4 @@
-module DE1_SoC_Audio_Example (
+module game_music (
     // Inputs
     CLOCK_50,
     KEY,
