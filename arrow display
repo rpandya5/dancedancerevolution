@@ -1,0 +1,326 @@
+module vga_demo(CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK, HEX3, HEX2, HEX1, HEX0,  LEDR);
+	input CLOCK_50;	
+	input [9:0] SW; //SW[9] for reset
+	input [3:0] KEY; //directional inputs
+	output [6:0] HEX3, HEX2, HEX1, HEX0;
+	output [7:0] VGA_R;
+	output [7:0] VGA_G;
+	output [7:0] VGA_B;
+	output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK;
+	output [9:0] LEDR; //showing debounced outputs
+	
+	wire [3:0] debounced_keys;
+	wire perfect_hit;
+	
+	// Instantiate input processing module
+   input_processing input_proc (
+		.CLOCK_50(CLOCK_50),
+      .KEY(KEY),
+      .SW(SW),
+      .LEDR(LEDR),
+		.a_out(debounced_keys)
+   );
+	
+	// Instantiate score tracking module
+	score_tracker tracker_inst (
+        .CLOCK_50(CLOCK_50),   // System clock
+        .reset(SW[9]),         // Reset signal (connected to a KEY)
+        .key_press(debounced_keys),       // Push button inputs (KEY)
+		  .perfect_hit(perfect_hit),
+        .HEX0(HEX0),           // Output to HEX displays
+        .HEX1(HEX1),
+        .HEX2(HEX2),
+        .HEX3(HEX3)
+    );
+	 
+	 //Instantiate arrow module
+	 arrow_game game_inst(
+		.CLOCK_50(CLOCK_50),
+      .reset(SW[9]),
+      .key_press(debounced_keys),
+      .VGA_R(VGA_R),
+      .VGA_G(VGA_G),
+      .VGA_B(VGA_B),
+      .VGA_HS(VGA_HS),
+      .VGA_VS(VGA_VS),
+      .VGA_BLANK_N(VGA_BLANK_N),
+      .VGA_SYNC_N(VGA_SYNC_N),
+      .VGA_CLK(VGA_CLK),
+      .perfect_hit(perfect_hit)
+    );
+	 
+endmodule
+
+//Input Processing Module
+module input_processing(
+	input CLOCK_50,		// DE1-SoC 50MHz clock
+   input [3:0] KEY,		// KEY[3:0] for directional inputs (active low)
+								// KEY[3] = up, KEY[2] = down, KEY[1] = left, KEY[0] = right
+   input [9:0] SW,		// SW[9] used for reset
+   output [9:0] LEDR,		// LEDR[3:0] shows debounced outputs
+	output reg [3:0] a_out	//Debounced outputs for external use
+);
+	
+	// Parameters
+   parameter DB = 1_000_000;  // 20ms at 50MHz (50M * 0.02)
+   
+   // Internal signals
+   wire [3:0] a_in;          // Inputs after active-low conversion
+   reg [3:0] a_led;          // LED outputs
+   wire reset;               // Reset signal
+    
+   // Convert active-low KEY inputs to active-high
+   assign a_in = ~KEY[3:0];
+   
+   // Use SW[9] for reset
+   assign reset = SW[9];
+    
+   // Connect internal LED signals to actual LEDs
+   assign LEDR[3:0] = a_led;
+   assign LEDR[9:4] = 6'b0;  // Turn off unused LEDs
+    
+   // Synchronizer registers
+   reg [3:0] a_sync1, a_sync2;  // Two flip-flops for synchronization
+    
+   // Debounce counters - one for each button
+   reg [19:0] a_count [3:0];  // 20 bits for counting to 1M
+    
+   // Current button states
+   reg [3:0] a_state;
+    
+   // Two-stage synchronizer
+   always @(posedge CLOCK_50)
+	begin
+		a_sync1 <= a_in;
+      a_sync2 <= a_sync1;
+   end
+    
+   // Debouncing and output logic
+   integer i;
+    
+   always @(posedge CLOCK_50)
+	begin
+	if (reset)
+	begin
+		a_out <= 4'b0;
+      a_led <= 4'b0;
+      a_state <= 4'b0;
+            
+      for (i = 0; i < 4; i = i + 1)
+		begin
+			a_count[i] <= 20'd0;
+      end
+	end
+   else
+	begin
+	// Check each button
+	for (i = 0; i < 4; i = i + 1)
+	begin
+		if (a_sync2[i] != a_state[i])
+		begin // Current state != previous state
+			if (a_count[i] < DB)
+				a_count[i] <= a_count[i] + 1'b1;
+			else
+			begin // Button pressed for enough time
+				a_state[i] <= a_sync2[i];
+            a_out[i] <= a_sync2[i];
+            a_led[i] <= a_sync2[i];
+            a_count[i] <= 20'd0;
+			end
+		end
+      else
+			a_count[i] <= 20'd0;  // Reset counter, no change
+	end
+	end
+	end
+endmodule
+
+module score_tracker(
+    input CLOCK_50,            // System clock
+    input reset,               // Reset signal
+    input [3:0] key_press,     // Debounced key inputs
+	 input perfect_hit,
+    output reg [6:0] HEX0,     // 7-segment display outputs
+    output reg [6:0] HEX1,
+    output reg [6:0] HEX2,
+    output reg [6:0] HEX3
+);
+
+    // Internal score counter (0-99)
+    reg [7:0] score;
+	 
+    // 7-segment display patterns (active low)
+    reg [6:0] seg7 [0:9];
+	 
+    initial begin
+        seg7[0] = 7'b1000000;  // 0
+        seg7[1] = 7'b1111001;  // 1
+        seg7[2] = 7'b0100100;  // 2
+        seg7[3] = 7'b0110000;  // 3
+        seg7[4] = 7'b0011001;  // 4
+        seg7[5] = 7'b0010010;  // 5
+        seg7[6] = 7'b0000010;  // 6
+        seg7[7] = 7'b1111000;  // 7
+        seg7[8] = 7'b0000000;  // 8
+        seg7[9] = 7'b0010000;  // 9
+    end
+	 
+    // Score update logic
+    always @(posedge CLOCK_50 or posedge reset) begin
+        if (reset) begin
+            score <= 8'd0;     // Reset score to 0
+        end else if (perfect_hit && score < 8'd99)begin
+            score <= score + 1'd1;
+        end
+    end
+    // Display update logic
+    always @(posedge CLOCK_50) begin
+        // Update 7-segment displays
+        HEX0 <= seg7[score % 10];  // Ones digit
+        HEX1 <= seg7[score / 10];  // Tens digit
+        HEX2 <= 7'b1111111;       // Turn off HEX2
+        HEX3 <= 7'b1111111;       // Turn off HEX3
+    end
+endmodule
+
+module arrow_game(
+    input CLOCK_50,
+    input reset,  // SW[9]
+    input [3:0] key_press,  // Debounced keys
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK,
+    output reg perfect_hit  // Signal for score increment
+);
+
+    // Parameters for arrow dimensions and position
+    parameter ARROW_WIDTH = 15;
+    parameter ARROW_HEIGHT = 15;
+    parameter SCREEN_WIDTH = 160;
+    parameter SCREEN_HEIGHT = 120;
+    parameter TARGET_Y = 100;  // Target hitting zone
+    parameter HIT_RANGE = 5;   // +/- pixels for hit detection
+    
+    // Arrow state
+    reg [7:0] arrow_x;
+    reg [6:0] arrow_y;
+    reg arrow_active;
+    reg [19:0] move_counter;
+    
+    // VGA signals
+    wire [7:0] x;
+    wire [6:0] y;
+    reg [2:0] color;
+    reg plot;
+    
+    // Arrow movement control
+    parameter MOVE_SPEED = 250000; // Adjust for desired speed
+    
+    // Initialize
+    initial begin
+        arrow_x = (SCREEN_WIDTH - ARROW_WIDTH) >> 1;  // Center horizontally
+        arrow_y = 0;
+        arrow_active = 1;
+        perfect_hit = 0;
+		  move_counter = 0;
+    end
+    
+    // Arrow movement and gameplay logic
+    always @(posedge CLOCK_50 or posedge reset) begin
+        if (reset) begin
+            arrow_y <= 0;
+            move_counter <= 0;
+            arrow_active <= 1;
+            perfect_hit <= 0;
+            arrow_x <= (SCREEN_WIDTH - ARROW_WIDTH) >> 1;
+        end
+        else begin
+            perfect_hit <= 0; // Reset hit signal
+            
+            // Check for hit when up key is pressed
+            if (key_press[3] && arrow_active) begin
+                if (arrow_y >= (TARGET_Y - HIT_RANGE) && 
+                    arrow_y <= (TARGET_Y + HIT_RANGE)) begin
+                    perfect_hit <= 1;   // Signal score increment
+                    arrow_active <= 0;  // Remove arrow
+                end
+            end
+            
+            // Move arrow or spawn new one
+            if (move_counter >= MOVE_SPEED) begin
+                move_counter <= 0;
+                if (arrow_active) begin
+                    if (arrow_y >= SCREEN_HEIGHT) begin
+                        arrow_y <= 0;    // Reset to top
+                    end
+                    else begin
+                        arrow_y <= arrow_y + 1;  // Move down
+                    end
+                end
+                else begin  // Spawn new arrow if current one was hit
+                    arrow_y <= 0;
+                    arrow_active <= 1;
+                end
+            end
+            else begin
+                move_counter <= move_counter + 1;
+            end
+        end
+    end
+    
+    reg [2:0] pixel_color;
+    reg pixel_active;
+    
+    
+    always @(*) begin
+        // Default to background
+        pixel_color = 3'b000;
+        pixel_active = 1'b1;
+        
+        // Check if current pixel is in arrow position
+        if (arrow_active && 
+            x >= arrow_x && x < (arrow_x + ARROW_WIDTH) &&
+            y >= arrow_y && y < (arrow_y + ARROW_HEIGHT)) begin
+            
+            // Arrow shaft
+            if ((x - arrow_x) >= 6 && (x - arrow_x) <= 8 && (y - arrow_y) >= 5)
+                pixel_color = 3'b111;  // White
+            // Arrow head
+            else if (((x - arrow_x) == 7 && (y - arrow_y) == 0) ||                    // Tip
+                    ((x - arrow_x) >= 6 && (x - arrow_x) <= 8 && (y - arrow_y) == 1) ||  // Middle
+                    ((x - arrow_x) >= 5 && (x - arrow_x) <= 9 && (y - arrow_y) == 2) ||  // Wider
+                    ((x - arrow_x) >= 4 && (x - arrow_x) <= 10 && (y - arrow_y) == 3) || // Widest
+                    ((x - arrow_x) >= 3 && (x - arrow_x) <= 11 && (y - arrow_y) == 4))   // Base
+                pixel_color = 3'b111;  // White
+        end
+        // Draw target line
+        else if (y == TARGET_Y) begin
+            pixel_color = 3'b001;  // Blue
+        end
+    end
+    
+    // VGA adapter instantiation
+    vga_adapter VGA(
+        .resetn(!reset),
+        .clock(CLOCK_50),
+        .colour(pixel_color),
+        .x(x),
+        .y(y),
+        .plot(1'b1),  // Always plotting
+        .VGA_R(VGA_R),
+        .VGA_G(VGA_G),
+        .VGA_B(VGA_B),
+        .VGA_HS(VGA_HS),
+        .VGA_VS(VGA_VS),
+        .VGA_BLANK_N(VGA_BLANK_N),
+        .VGA_SYNC_N(VGA_SYNC_N),
+        .VGA_CLK(VGA_CLK)
+    );
+    
+    defparam VGA.RESOLUTION = "160x120";
+    defparam VGA.MONOCHROME = "FALSE";
+    defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+    defparam VGA.BACKGROUND_IMAGE = "black.mif";
+
+endmodule
