@@ -1,133 +1,125 @@
-//PROBABLY WILL CHANGE
-
+// updated nov 18
 
 module arrow_pattern_generator (
     input wire clk,                    // Clock input
     input wire rst,                    // Reset input
-    input wire [3:0] button_press,     // Button inputs (up, down, left, right)
-    input wire [27:0] clk_div,         // Clock divider for timing
-    output reg [3:0] current_arrow,    // Current arrow to display
-    output reg arrow_valid,            // Indicates if current arrow should be displayed
-    output reg [6:0] arrow_x,          // X position of arrow (0-159)
-    output reg [6:0] arrow_y           // Y position of arrow (0-119)
+    input wire game_active,            // Signal from controller that game is in play state
+    input wire beat_pulse,             // Timing pulse from audio/rhythm system
+    
+    // Arrow pattern outputs - active high when that arrow should be displayed
+    output reg [3:0] pattern_out,      // Each bit represents an arrow (UDLR)
+    output reg pattern_valid,          // High when pattern_out has valid data
+    
+    // Individual arrow creation signals
+    output reg create_up,
+    output reg create_down,
+    output reg create_left,
+    output reg create_right
 );
 
-    // Parameters for LFSR
-    reg [31:0] lfsr;
-    wire feedback = lfsr[31] ^ lfsr[21] ^ lfsr[1] ^ lfsr[0];
+    // Pattern definitions - 4'b(UDLR)
+    localparam PATTERN_UP    = 4'b1000;
+    localparam PATTERN_DOWN  = 4'b0100;
+    localparam PATTERN_LEFT  = 4'b0010;
+    localparam PATTERN_RIGHT = 4'b0001;
     
-    // State definitions
-    localparam INIT = 2'b00;
-    localparam DISPLAY = 2'b01;
-    localparam EVALUATE = 2'b10;
-    localparam NEW_ARROW = 2'b11;
+    // Valid pairs
+    localparam PAIR_UP_DOWN   = 4'b1100;
+    localparam PAIR_UP_LEFT   = 4'b1010;
+    localparam PAIR_UP_RIGHT  = 4'b1001;
+    localparam PAIR_DOWN_LEFT = 4'b0110;
+    localparam PAIR_DOWN_RIGHT= 4'b0101;
+    localparam PAIR_LEFT_RIGHT= 4'b0011;
+
+    // LFSR for random pattern selection
+    reg [15:0] lfsr;
+    wire feedback = lfsr[15] ^ lfsr[14] ^ lfsr[12] ^ lfsr[3];
+
+    // FSM states
+    localparam IDLE     = 2'b00;
+    localparam GENERATE = 2'b01;
+    localparam HOLD    = 2'b10;
+    
     reg [1:0] current_state;
-    
-    // Timer for arrow display stability
-    reg [27:0] display_timer;
-    localparam DISPLAY_TIME = 28'd2500000; // Adjust based on your clock frequency
-    
-    // One-hot button press detector
-    wire valid_press = (button_press == 4'b0001 || button_press == 4'b0010 ||
-                       button_press == 4'b0100 || button_press == 4'b1000);
-    
-    // Screen position constants
-    localparam UP_X = 7'd80;    // Center X
-    localparam UP_Y = 7'd20;    // Top
-    localparam DOWN_X = 7'd80;  // Center X
-    localparam DOWN_Y = 7'd100; // Bottom
-    localparam LEFT_X = 7'd20;  // Left
-    localparam LEFT_Y = 7'd60;  // Center Y
-    localparam RIGHT_X = 7'd140;// Right
-    localparam RIGHT_Y = 7'd60; // Center Y
 
     // Initialize with default values
     initial begin
-        lfsr = 32'hABCD1234;  // Non-zero seed
-        current_state = INIT;
-        arrow_valid = 0;
-        current_arrow = 4'b0000;
-        display_timer = 0;
-        arrow_x = UP_X;
-        arrow_y = UP_Y;
+        lfsr = 16'hACE1;  // Non-zero seed
+        current_state = IDLE;
+        pattern_valid = 0;
+        pattern_out = 4'b0000;
+        create_up = 0;
+        create_down = 0;
+        create_left = 0;
+        create_right = 0;
+    end
+
+    // Combinational logic for setting create signals based on pattern_out
+    always @(*) begin
+        // Default all signals to 0
+        create_up = 0;
+        create_down = 0;
+        create_left = 0;
+        create_right = 0;
+
+        if (pattern_valid) begin
+            // Check each bit of pattern_out
+            create_up = pattern_out[3];    // UDLR - bit 3 is up
+            create_down = pattern_out[2];  // UDLR - bit 2 is down
+            create_left = pattern_out[1];  // UDLR - bit 1 is left
+            create_right = pattern_out[0]; // UDLR - bit 0 is right
+        end
     end
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
-            lfsr <= 32'hABCD1234;
-            current_state <= INIT;
-            arrow_valid <= 0;
-            current_arrow <= 4'b0000;
-            display_timer <= 0;
-            arrow_x <= UP_X;
-            arrow_y <= UP_Y;
-        end else begin
+            lfsr <= 16'hACE1;
+            current_state <= IDLE;
+            pattern_valid <= 0;
+            pattern_out <= 4'b0000;
+        end 
+        else begin
             case (current_state)
-                INIT: begin
-                    // Generate first arrow immediately after reset
-                    lfsr <= {lfsr[30:0], feedback};
-                    current_state <= NEW_ARROW;
-                end
-
-                DISPLAY: begin
-                    // Keep arrow displayed for minimum time
-                    if (display_timer >= DISPLAY_TIME) begin
-                        if (button_press != 4'b0000) begin
-                            current_state <= EVALUATE;
-                        end
-                    end else begin
-                        display_timer <= display_timer + 1;
+                IDLE: begin
+                    pattern_valid <= 0;
+                    if (game_active && beat_pulse) begin
+                        current_state <= GENERATE;
                     end
                 end
 
-                EVALUATE: begin
-                    if (valid_press) begin
-                        if (button_press == current_arrow) begin
-                            // Correct press
-                            current_state <= NEW_ARROW;
-                        end else begin
-                            // Wrong press - keep current arrow
-                            current_state <= DISPLAY;
-                        end
-                    end else begin
-                        // Invalid press - keep current arrow
-                        current_state <= DISPLAY;
-                    end
-                    display_timer <= 0;
-                end
-
-                NEW_ARROW: begin
-                    // Update LFSR fully
-                    lfsr <= {lfsr[30:0], feedback};
+                GENERATE: begin
+                    // Update LFSR
+                    lfsr <= {lfsr[14:0], feedback};
                     
-                    // Use more bits for better randomness
-                    case (lfsr[31:28]) // Use 4 bits for better distribution
-                        4'b0000, 4'b0001, 4'b0010, 4'b0011: begin
-                            current_arrow <= 4'b0001; // Up
-                            arrow_x <= UP_X;
-                            arrow_y <= UP_Y;
-                        end
-                        4'b0100, 4'b0101, 4'b0110, 4'b0111: begin
-                            current_arrow <= 4'b0010; // Down
-                            arrow_x <= DOWN_X;
-                            arrow_y <= DOWN_Y;
-                        end
-                        4'b1000, 4'b1001, 4'b1010, 4'b1011: begin
-                            current_arrow <= 4'b0100; // Left
-                            arrow_x <= LEFT_X;
-                            arrow_y <= LEFT_Y;
-                        end
-                        default: begin
-                            current_arrow <= 4'b1000; // Right
-                            arrow_x <= RIGHT_X;
-                            arrow_y <= RIGHT_Y;
-                        end
+                    // Use LFSR bits to determine pattern type and selection
+                    case (lfsr[3:0])  // Use 4 bits for pattern selection
+                        // Single arrows (4/16 chance = 25%)
+                        4'b0000: pattern_out <= PATTERN_UP;
+                        4'b0001: pattern_out <= PATTERN_DOWN;
+                        4'b0010: pattern_out <= PATTERN_LEFT;
+                        4'b0011: pattern_out <= PATTERN_RIGHT;
+                        
+                        // Pairs (12/16 chance = 75%)
+                        4'b0100, 4'b0101: pattern_out <= PAIR_UP_DOWN;
+                        4'b0110, 4'b0111: pattern_out <= PAIR_UP_LEFT;
+                        4'b1000, 4'b1001: pattern_out <= PAIR_UP_RIGHT;
+                        4'b1010, 4'b1011: pattern_out <= PAIR_DOWN_LEFT;
+                        4'b1100, 4'b1101: pattern_out <= PAIR_DOWN_RIGHT;
+                        4'b1110, 4'b1111: pattern_out <= PAIR_LEFT_RIGHT;
                     endcase
                     
-                    arrow_valid <= 1;
-                    current_state <= DISPLAY;
-                    display_timer <= 0;
+                    pattern_valid <= 1;
+                    current_state <= HOLD;
                 end
+
+                HOLD: begin
+                    if (!beat_pulse) begin
+                        current_state <= IDLE;
+                        pattern_valid <= 0;
+                    end
+                end
+
+                default: current_state <= IDLE;
             endcase
         end
     end
