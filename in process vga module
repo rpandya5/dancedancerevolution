@@ -10,48 +10,21 @@ module arrow_game(
 );
 
     // VGA signals
-    reg [7:0] x_pos;
-    reg [6:0] y_pos;
     wire [7:0] x;
     wire [6:0] y;
     
-    // Simple pattern to verify display is working
-    reg [2:0] pixel_color;
+    // Fixed color for testing - solid white
+    wire [2:0] pixel_color;
+    assign pixel_color = 3'b111;  // White screen
     
-    // Generate a simple test pattern
-    always @(*) begin
-        // Default to black
-        pixel_color = 3'b000;
-        
-        // Draw a white rectangle in the middle of the screen
-        if (x >= 70 && x <= 90 && y >= 50 && y <= 70) begin
-            pixel_color = 3'b111;  // White
-        end
-        
-        // Draw the blue target line
-        if (y == 100) begin
-            pixel_color = 3'b001;  // Blue
-        end
-        
-        // Draw red borders to see screen boundaries
-        if (x == 0 || x == 159 || y == 0 || y == 119) begin
-            pixel_color = 3'b100;  // Red
-        end
-    end
-    
-    // Instantiate VGA adapter
-    vga_adapter #(
-        .RESOLUTION("160x120"),
-        .MONOCHROME("FALSE"),
-        .BITS_PER_COLOUR_CHANNEL(1),
-        .BACKGROUND_IMAGE("black.mif")
-    ) VGA(
-        .resetn(!reset),
+    // VGA adapter instantiation
+    vga_adapter VGA(
+        .resetn(!reset),        // Active low reset
         .clock(CLOCK_50),
-        .colour(pixel_color),
+        .colour(pixel_color),   // Solid white
         .x(x),
         .y(y),
-        .plot(1'b1),
+        .plot(1'b1),           // Always plotting
         .VGA_R(VGA_R),
         .VGA_G(VGA_G),
         .VGA_B(VGA_B),
@@ -61,5 +34,10 @@ module arrow_game(
         .VGA_SYNC_N(VGA_SYNC_N),
         .VGA_CLK(VGA_CLK)
     );
+    
+    defparam VGA.RESOLUTION = "160x120";
+    defparam VGA.MONOCHROME = "FALSE";
+    defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+    defparam VGA.BACKGROUND_IMAGE = "black.mif";
 
 endmodule
