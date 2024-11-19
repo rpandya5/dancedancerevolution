@@ -157,21 +157,23 @@ module controller (
                 end
 
                 IDLE: begin
-                    enable_title_screen = 1;  // Keep showing title screen
+                    enable_idle_screen = 1;
                 end
 
                 COUNTDOWN: begin
-                    enable_countdown_screen = 1;
+                    enable_countdown_visuals = 1; // output shud be cdown_NUM
                     enable_countdown_audio = 1;
                 end
 
                 PLAYING: begin
                     enable_song = 1;
                     game_active = 1;
+                    enable_game_bg = 1;
                 end
 
                 GAMEOVER: begin
-                    show_game_over = 1;
+                    // find winner function set to high, output enable_A_won / enable_B_won
+                    // show_game_over = 1; (remove this i think)
                 end
 
                 default: begin
