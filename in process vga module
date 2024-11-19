@@ -1,0 +1,158 @@
+module arrow_game(
+    input CLOCK_50,
+    input reset,
+    input [3:0] key_press,
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK,
+    output reg perfect_hit
+);
+
+    // Parameters for arrow dimensions and position
+    parameter ARROW_WIDTH = 7;    // Reduced for 160x120 resolution
+    parameter ARROW_HEIGHT = 7;   // Square arrow for simplicity
+    parameter SCREEN_WIDTH = 160;
+    parameter SCREEN_HEIGHT = 120;
+    parameter TARGET_Y = 100;     // Target line position
+    parameter HIT_RANGE = 3;      // Reduced hit range for smaller arrow
+    
+    // Arrow state
+    reg [7:0] arrow_x;
+    reg [6:0] arrow_y;
+    reg arrow_active;
+    reg [19:0] move_counter;
+    
+    // VGA signals
+    wire [7:0] x;
+    wire [6:0] y;
+    wire [2:0] colour;
+    wire writeEn;
+    
+    // Movement speed
+    parameter MOVE_SPEED = 500000; // Adjust this for desired speed
+    
+    // Initialize
+    initial begin
+        arrow_x = 80;    // Center horizontally (160/2 - ARROW_WIDTH/2)
+        arrow_y = 0;
+        arrow_active = 1;
+        perfect_hit = 0;
+        move_counter = 0;
+    end
+    
+    // Arrow movement and gameplay logic
+    always @(posedge CLOCK_50 or posedge reset) begin
+        if (reset) begin
+            arrow_y <= 0;
+            move_counter <= 0;
+            arrow_active <= 1;
+            perfect_hit <= 0;
+            arrow_x <= 80;
+        end
+        else begin
+            perfect_hit <= 0;
+            
+            // Check for hit
+            if (key_press[3] && arrow_active) begin
+                if (arrow_y >= (TARGET_Y - HIT_RANGE) && 
+                    arrow_y <= (TARGET_Y + HIT_RANGE)) begin
+                    perfect_hit <= 1;
+                    arrow_active <= 0;
+                end
+            end
+            
+            // Move arrow
+            if (move_counter >= MOVE_SPEED) begin
+                move_counter <= 0;
+                if (arrow_active) begin
+                    if (arrow_y >= SCREEN_HEIGHT) begin
+                        arrow_y <= 0;
+                        arrow_active <= 1;
+                    end
+                    else begin
+                        arrow_y <= arrow_y + 1;
+                    end
+                end
+                else begin
+                    arrow_y <= 0;
+                    arrow_active <= 1;
+                end
+            end
+            else begin
+                move_counter <= move_counter + 1;
+            end
+        end
+    end
+    
+    // Color generation logic
+    reg [2:0] pixel_color;
+    
+    always @(*) begin
+        // Default black background
+        pixel_color = 3'b000;
+        
+        // Draw arrow (white) when active
+        if (arrow_active && 
+            x >= arrow_x && x < (arrow_x + ARROW_WIDTH) &&
+            y >= arrow_y && y < (arrow_y + ARROW_HEIGHT)) begin
+            
+            // Center vertical line (shaft)
+            if (x == arrow_x + 3) 
+                pixel_color = 3'b111;
+            
+            // Arrow head (triangle shape)
+            else if (y == arrow_y &&                          // Top point
+                    x == arrow_x + 3)
+                pixel_color = 3'b111;
+            else if (y == arrow_y + 1 &&                      // Second row
+                    (x >= arrow_x + 2 && x <= arrow_x + 4))
+                pixel_color = 3'b111;
+            else if (y == arrow_y + 2 &&                      // Third row
+                    (x >= arrow_x + 1 && x <= arrow_x + 5))
+                pixel_color = 3'b111;
+            
+            // Arrow tail (inverted triangle)
+            else if (y == arrow_y + 6 &&                      // Bottom row
+                    (x >= arrow_x + 1 && x <= arrow_x + 5))
+                pixel_color = 3'b111;
+            else if (y == arrow_y + 5 &&                      // Second from bottom
+                    (x >= arrow_x + 2 && x <= arrow_x + 4))
+                pixel_color = 3'b111;
+        end
+        
+        // Target line (blue)
+        else if (y == TARGET_Y) begin
+            pixel_color = 3'b001;
+        end
+    end
+    
+    // Convert 3-bit color to 8-bit per channel
+    assign VGA_R = {8{pixel_color[2]}};
+    assign VGA_G = {8{pixel_color[1]}};
+    assign VGA_B = {8{pixel_color[0]}};
+    
+    // VGA adapter instantiation
+    vga_adapter VGA(
+        .resetn(!reset),
+        .clock(CLOCK_50),
+        .colour(pixel_color),
+        .x(x),
+        .y(y),
+        .plot(1'b1),
+        .VGA_R(VGA_R),
+        .VGA_G(VGA_G),
+        .VGA_B(VGA_B),
+        .VGA_HS(VGA_HS),
+        .VGA_VS(VGA_VS),
+        .VGA_BLANK_N(VGA_BLANK_N),
+        .VGA_SYNC_N(VGA_SYNC_N),
+        .VGA_CLK(VGA_CLK)
+    );
+    
+    defparam VGA.RESOLUTION = "160x120";
+    defparam VGA.MONOCHROME = "FALSE";
+    defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
+    defparam VGA.BACKGROUND_IMAGE = "black.mif";
+
+endmodule
