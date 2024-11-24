@@ -1,4 +1,4 @@
-//updated nov 23 7:56 pm
+//updated nov 23 9:21 pm - DO NOT CHANGE ANYTHING
 
 module vga_demo(CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK, HEX3, HEX2, HEX1, HEX0,  LEDR);
 	input CLOCK_50;	
@@ -13,6 +13,19 @@ module vga_demo(CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLAN
 	
 	wire [3:0] debounced_keys;
 	wire perfect_hit;
+	
+	// Wire for pattern generator outputs
+   wire [3:0] pattern_out;
+   wire pattern_valid;
+	
+	//Instantiate pattern generator with simplified timing
+	arrow_pattern_generator pattern_gen (
+        .clock(CLOCK_50),
+        .reset(SW[9]),
+        .game_active(1'b1),
+        .pattern_out(pattern_out),
+        .pattern_valid(pattern_valid)
+    );
 	
 	// Instantiate input processing module
    input_processing input_proc (
@@ -48,9 +61,91 @@ module vga_demo(CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLAN
       .VGA_BLANK_N(VGA_BLANK_N),
       .VGA_SYNC_N(VGA_SYNC_N),
       .VGA_CLK(VGA_CLK),
-      .perfect_hit(perfect_hit)
+      .perfect_hit(perfect_hit),
+		.pattern_valid(pattern_valid),
+      .pattern_out(pattern_out)
     );
 	 
+endmodule
+
+module arrow_pattern_generator (
+    input wire clock,                    
+    input wire reset,                    
+    input wire game_active,            
+    output reg [3:0] pattern_out,      // Each bit represents an arrow (UDLR)
+    output reg pattern_valid           // High when pattern_out has valid data
+);
+
+    // Pattern definitions - 4'b(UDLR)
+    localparam PATTERN_UP    = 4'b1000;
+    localparam PATTERN_DOWN  = 4'b0100;
+    localparam PATTERN_LEFT  = 4'b0010;
+    localparam PATTERN_RIGHT = 4'b0001;
+    
+    // Valid pairs
+    localparam PAIR_UP_DOWN   = 4'b1100;
+    localparam PAIR_UP_LEFT   = 4'b1010;
+    localparam PAIR_UP_RIGHT  = 4'b1001;
+    localparam PAIR_DOWN_LEFT = 4'b0110;
+    localparam PAIR_DOWN_RIGHT= 4'b0101;
+    localparam PAIR_LEFT_RIGHT= 4'b0011;
+
+    // LFSR for random pattern selection
+    reg [15:0] lfsr;
+    wire feedback = lfsr[15] ^ lfsr[14] ^ lfsr[12] ^ lfsr[3];
+    
+    // Counter for timing
+    reg [24:0] spawn_counter;
+    localparam SPAWN_INTERVAL = 25000000; // Adjust this value to change arrow spawn rate
+    
+    // Initialize
+    initial begin
+        lfsr = 16'hACE1;  // Non-zero seed
+        pattern_valid = 0;
+        pattern_out = 4'b0000;
+        spawn_counter = 0;
+    end
+
+    always @(posedge clock or posedge reset) begin
+        if (reset) begin
+            lfsr <= 16'hACE1;
+            pattern_valid <= 0;
+            pattern_out <= 4'b0000;
+            spawn_counter <= 0;
+        end 
+        else if (game_active) begin
+            // Update spawn counter
+            if (spawn_counter >= SPAWN_INTERVAL) begin
+                spawn_counter <= 0;
+                
+                // Update LFSR
+                lfsr <= {lfsr[14:0], feedback};
+                
+                // Generate new pattern
+                case (lfsr[3:0])  // Use 4 bits for pattern selection
+                    // Single arrows (4/16 chance = 25%)
+                    4'b0000: pattern_out <= PATTERN_UP;
+                    4'b0001: pattern_out <= PATTERN_DOWN;
+                    4'b0010: pattern_out <= PATTERN_LEFT;
+                    4'b0011: pattern_out <= PATTERN_RIGHT;
+                    
+                    // Pairs (12/16 chance = 75%)
+                    4'b0100, 4'b0101: pattern_out <= PAIR_UP_DOWN;
+                    4'b0110, 4'b0111: pattern_out <= PAIR_UP_LEFT;
+                    4'b1000, 4'b1001: pattern_out <= PAIR_UP_RIGHT;
+                    4'b1010, 4'b1011: pattern_out <= PAIR_DOWN_LEFT;
+                    4'b1100, 4'b1101: pattern_out <= PAIR_DOWN_RIGHT;
+                    4'b1110, 4'b1111: pattern_out <= PAIR_LEFT_RIGHT;
+                endcase
+                
+                pattern_valid <= 1;
+            end
+            else begin
+                spawn_counter <= spawn_counter + 1;
+                pattern_valid <= 0;
+            end
+        end
+    end
 endmodule
 
 //Input Processing Module
@@ -204,6 +299,8 @@ module arrow_game(
     input CLOCK_50,
     input reset,
     input [3:0] key_press,  //[3:0] for both players' inputs
+    input pattern_valid,
+    input [3:0] pattern_out,
     output [7:0] VGA_R,
     output [7:0] VGA_G,
     output [7:0] VGA_B,
@@ -222,15 +319,14 @@ module arrow_game(
     parameter P2_TARGET_X = 90;       // Player 2 score box x position
     parameter TARGET_Y = SCREEN_HEIGHT - 30;          // Score box height
     parameter TARGET_WIDTH = 40;      // Score box width
-    parameter HIT_RANGE = 10;          // How close to target counts as hit
-	 
-	 parameter BOX_SIZE = 11;           // Size of each individual box
+    parameter HIT_RANGE = 10;         // How close to target counts as hit
+    parameter BOX_SIZE = 11;          // Size of each individual box
     parameter BOX_SPACING = 7;        // Space between boxes
     
-    // Arrow states for each player (8 arrows total)
-    reg [7:0] arrow_x [7:0];  // X positions for all arrows
-    reg [6:0] arrow_y [7:0];  // Y positions for all arrows
-    reg [7:0] arrow_active;   // Active state for each arrow
+    // Arrow positions and states
+    reg [7:0] arrow_x [7:0];        // X positions for all arrows
+    reg [6:0] arrow_y [7:0];        // Y positions for all arrows
+    reg [7:0] arrow_active;         // Active state for each arrow
     reg [19:0] move_counter;
     
     // X and Y counters for pixel position
@@ -245,32 +341,15 @@ module arrow_game(
     reg [3:0] prev_key_press;
     reg [7:0] in_target_zone;
     
-    integer i;
-    
-    // Initialize
+    // Initialize all registers at declaration
     initial begin
-        // Player 1 arrows (left side)
-        arrow_x[0] = 12;   // Left arrow
-        arrow_x[1] = 29;   // Up arrow
-        arrow_x[2] = 48;   // Right arrow
-        arrow_x[3] = 66;   // Down arrow
-        
-        // Player 2 arrows (right side)
-        arrow_x[4] = 92;   // Left arrow
-        arrow_x[5] = 110;  // Up arrow
-        arrow_x[6] = 128;  // Right arrow
-        arrow_x[7] = 146;  // Down arrow
-        
-        // Initialize Y positions
-        for (i = 0; i < 8; i = i + 1) begin
-            arrow_y[i] = (i * SCREEN_HEIGHT / 8);  // Stagger initial positions
-        end
-        
-        arrow_active = 8'b11111111; // All arrows active
-        perfect_hit = 2'b00;
-        move_counter = 0;
-        prev_key_press = 0;
-        in_target_zone = 0;
+        arrow_active = 8'b0;
+        move_counter = 20'b0;
+        perfect_hit = 1'b0;
+        prev_key_press = 4'b0;
+        in_target_zone = 8'b0;
+        x_counter = 8'b0;
+        y_counter = 7'b0;
     end
 
     // Counter for pixel position
@@ -293,38 +372,91 @@ module arrow_game(
         end
     end
 
-    // Arrow movement and hit detection logic
+    // Combined arrow movement, initialization, and game logic
     always @(posedge CLOCK_50 or posedge reset) begin
+        integer i;  // Moved integer declaration to beginning of block
+        
         if (reset) begin
-            // Reset all arrows
-            for (i = 0; i < 8; i = i + 1) begin
-                arrow_y[i] <= 0;
-                arrow_active[i] <= 1;
-            end
-            // Reset X positions
-            // Player 1
-				arrow_x[0] <= 12;
-            arrow_x[1] <= 29;
-            arrow_x[2] <= 48;
-            arrow_x[3] <= 66;
-            // Player 2
-            arrow_x[4] <= 92;
-            arrow_x[5] <= 110;
-            arrow_x[6] <= 128;
-            arrow_x[7] <= 146;
+            // Initialize X positions
+            arrow_x[0] <= 12;  // P1 Left
+            arrow_x[1] <= 29;  // P1 Up
+            arrow_x[2] <= 48;  // P1 Right
+            arrow_x[3] <= 66;  // P1 Down
+            arrow_x[4] <= 92;  // P2 Left
+            arrow_x[5] <= 110; // P2 Up
+            arrow_x[6] <= 128; // P2 Right
+            arrow_x[7] <= 146; // P2 Down
             
+            // Initialize other game state
             move_counter <= 0;
-            perfect_hit <= 2'b00;
+            perfect_hit <= 0;
             prev_key_press <= 0;
             in_target_zone <= 0;
+            arrow_active <= 0;
+            
+            // Initialize Y positions
+            arrow_y[0] <= 0;
+            arrow_y[1] <= 0;
+            arrow_y[2] <= 0;
+            arrow_y[3] <= 0;
+            arrow_y[4] <= 0;
+            arrow_y[5] <= 0;
+            arrow_y[6] <= 0;
+            arrow_y[7] <= 0;
         end
         else begin
-            perfect_hit <= 2'b00;
+            // Pattern processing
+            if (pattern_valid) begin
+                if (pattern_out[3]) begin  // Up arrow
+                    if (!arrow_active[1]) begin
+                        arrow_active[1] <= 1;
+                        arrow_y[1] <= 0;
+                    end
+                    if (!arrow_active[5]) begin
+                        arrow_active[5] <= 1;
+                        arrow_y[5] <= 0;
+                    end
+                end
+                if (pattern_out[2]) begin  // Down arrow
+                    if (!arrow_active[3]) begin
+                        arrow_active[3] <= 1;
+                        arrow_y[3] <= 0;
+                    end
+                    if (!arrow_active[7]) begin
+                        arrow_active[7] <= 1;
+                        arrow_y[7] <= 0;
+                    end
+                end
+                if (pattern_out[1]) begin  // Left arrow
+                    if (!arrow_active[0]) begin
+                        arrow_active[0] <= 1;
+                        arrow_y[0] <= 0;
+                    end
+                    if (!arrow_active[4]) begin
+                        arrow_active[4] <= 1;
+                        arrow_y[4] <= 0;
+                    end
+                end
+                if (pattern_out[0]) begin  // Right arrow
+                    if (!arrow_active[2]) begin
+                        arrow_active[2] <= 1;
+                        arrow_y[2] <= 0;
+                    end
+                    if (!arrow_active[6]) begin
+                        arrow_active[6] <= 1;
+                        arrow_y[6] <= 0;
+                    end
+                end
+            end
+
+            // Update target zone status
+            perfect_hit <= 0;
+            prev_key_press <= key_press;
             
-            // Update target zone status for each arrow
-            for (i = 0; i < 8; i = i + 1) begin
-                // Player 1 arrows (0-3)
-                if (i < 4) begin
+            // Check for hits and update target zones
+            for (i = 0; i < 4; i = i + 1) begin
+                // Update target zone status
+                if (i < 4) begin  // Player 1 arrows
                     in_target_zone[i] <= (
                         arrow_y[i] >= (TARGET_Y - HIT_RANGE) && 
                         arrow_y[i] <= (TARGET_Y + HIT_RANGE) &&
@@ -332,8 +464,7 @@ module arrow_game(
                         arrow_x[i] < (P1_TARGET_X + (i * (BOX_SIZE + BOX_SPACING)) + BOX_SIZE)
                     );
                 end
-                // Player 2 arrows (4-7)
-                else begin
+                else begin  // Player 2 arrows
                     in_target_zone[i] <= (
                         arrow_y[i] >= (TARGET_Y - HIT_RANGE) && 
                         arrow_y[i] <= (TARGET_Y + HIT_RANGE) &&
@@ -341,28 +472,20 @@ module arrow_game(
                         arrow_x[i] < (P2_TARGET_X + ((i-4) * (BOX_SIZE + BOX_SPACING)) + BOX_SIZE)
                     );
                 end
-            end
-            
-            // Key press edge detection
-            prev_key_press <= key_press;
-            
-            // Check for hits - use same keys for both players
-            for (i = 0; i < 4; i = i + 1) begin
-                // Check both player 1 and player 2 arrows with the same key press
-                if (key_press[i] && !prev_key_press[i]) begin
-                    // Player 1 arrows
+
+                // Check for hits
+                if (i < 4 && key_press[i] && !prev_key_press[i]) begin
                     if (arrow_active[i] && in_target_zone[i]) begin
                         perfect_hit <= 1;
                         arrow_active[i] <= 0;
                     end
-                    // Player 2 arrows
                     if (arrow_active[i+4] && in_target_zone[i+4]) begin
                         perfect_hit <= 1;
                         arrow_active[i+4] <= 0;
                     end
                 end
             end
-            
+
             // Move arrows
             if (move_counter >= MOVE_SPEED) begin
                 move_counter <= 0;
@@ -370,15 +493,11 @@ module arrow_game(
                     if (arrow_active[i]) begin
                         if (arrow_y[i] >= SCREEN_HEIGHT) begin
                             arrow_y[i] <= 0;
-                            arrow_active[i] <= 1;
+                            arrow_active[i] <= 0;
                         end
                         else begin
                             arrow_y[i] <= arrow_y[i] + 1;
                         end
-                    end
-                    else begin
-                        arrow_y[i] <= 0;
-                        arrow_active[i] <= 1;
                     end
                 end
             end
@@ -438,6 +557,8 @@ module arrow_game(
 
     // Color generation logic
     always @(*) begin
+        integer i;  // Moved integer declaration to beginning of block
+        
         // Draw background colour
         pixel_color = 3'b000;  // Black background
         
@@ -471,17 +592,6 @@ module arrow_game(
                 endcase
             end
         end
-        
-        // Visual feedback for hits
-        for (i = 0; i < 8; i = i + 1) begin
-            if (arrow_active[i] && in_target_zone[i]) begin
-                if (y_counter < TARGET_Y && 
-                    ((i < 4 && x_counter >= P1_TARGET_X && x_counter < (P1_TARGET_X + TARGET_WIDTH)) ||
-                     (i >= 4 && x_counter >= P2_TARGET_X && x_counter < (P2_TARGET_X + TARGET_WIDTH)))) begin
-                    //pixel_color = 3'b111;  // Flash white when in target zone
-                end
-            end
-        end
     end
     
     // VGA adapter instantiation
@@ -501,7 +611,7 @@ module arrow_game(
         .VGA_SYNC_N(VGA_SYNC_N),
         .VGA_CLK(VGA_CLK)
     );
-    
+	 
     defparam VGA.RESOLUTION = "160x120";
     defparam VGA.MONOCHROME = "FALSE";
     defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
