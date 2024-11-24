@@ -1,4 +1,4 @@
-// updated nov 11. NOT testing version
+// THIS IS RIGHT AND CORRECT. 
 
 module input_processing (
     input clock,              // clock
