@@ -1,3 +1,5 @@
+//updated nov 23 7:56 pm
+
 module vga_demo(CLOCK_50, SW, KEY, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK, HEX3, HEX2, HEX1, HEX0,  LEDR);
 	input CLOCK_50;	
 	input [9:0] SW; //SW[9] for reset
@@ -55,7 +57,7 @@ endmodule
 module input_processing(
 	input CLOCK_50,		// DE1-SoC 50MHz clock
    input [3:0] KEY,		// KEY[3:0] for directional inputs (active low)
-								// KEY[3] = up, KEY[2] = down, KEY[1] = left, KEY[0] = right
+								// KEY[3] = left, KEY[2] = up, KEY[1] = right, KEY[0] = down
    input [9:0] SW,		// SW[9] used for reset
    output [9:0] LEDR,		// LEDR[3:0] shows debounced outputs
 	output reg [3:0] a_out	//Debounced outputs for external use
@@ -70,7 +72,7 @@ module input_processing(
    wire reset;               // Reset signal
     
    // Convert active-low KEY inputs to active-high
-   assign a_in = ~KEY[3:0];
+   assign a_in = {~KEY[0], ~KEY[1], ~KEY[2], ~KEY[3]};
    
    // Use SW[9] for reset
    assign reset = SW[9];
@@ -192,8 +194,8 @@ module score_tracker(
         // Update 7-segment displays
         HEX0 <= seg7[score % 10];       // Ones digit
         HEX1 <= seg7[score / 10];       // Tens digit
-        HEX2 <= 7'b1111111;            // Turn off HEX2
-        HEX3 <= 7'b1111111;            // Turn off HEX3
+        HEX2 <= seg7[score % 10];       // Ones digit
+        HEX3 <= seg7[score / 10];       // Tens digit
     end
 
 endmodule
@@ -218,12 +220,12 @@ module arrow_game(
     // Target zone parameters (score boxes)
     parameter P1_TARGET_X = 10;       // Player 1 score box x position
     parameter P2_TARGET_X = 90;       // Player 2 score box x position
-    parameter TARGET_Y = SCREEN_HEIGHT - 20;          // Score box height
+    parameter TARGET_Y = SCREEN_HEIGHT - 30;          // Score box height
     parameter TARGET_WIDTH = 40;      // Score box width
     parameter HIT_RANGE = 10;          // How close to target counts as hit
 	 
-	 parameter BOX_SIZE = 10;           // Size of each individual box
-    parameter BOX_SPACING = 10;        // Space between boxes
+	 parameter BOX_SIZE = 11;           // Size of each individual box
+    parameter BOX_SPACING = 7;        // Space between boxes
     
     // Arrow states for each player (8 arrows total)
     reg [7:0] arrow_x [7:0];  // X positions for all arrows
@@ -248,16 +250,16 @@ module arrow_game(
     // Initialize
     initial begin
         // Player 1 arrows (left side)
-        arrow_x[0] = 15;   // Left arrow
-        arrow_x[1] = 25;   // Up arrow
-        arrow_x[2] = 35;   // Right arrow
-        arrow_x[3] = 45;   // Down arrow
+        arrow_x[0] = 12;   // Left arrow
+        arrow_x[1] = 29;   // Up arrow
+        arrow_x[2] = 48;   // Right arrow
+        arrow_x[3] = 66;   // Down arrow
         
         // Player 2 arrows (right side)
-        arrow_x[4] = 95;   // Left arrow
-        arrow_x[5] = 105;  // Up arrow
-        arrow_x[6] = 115;  // Right arrow
-        arrow_x[7] = 125;  // Down arrow
+        arrow_x[4] = 92;   // Left arrow
+        arrow_x[5] = 110;  // Up arrow
+        arrow_x[6] = 128;  // Right arrow
+        arrow_x[7] = 146;  // Down arrow
         
         // Initialize Y positions
         for (i = 0; i < 8; i = i + 1) begin
@@ -301,15 +303,15 @@ module arrow_game(
             end
             // Reset X positions
             // Player 1
-            arrow_x[0] <= 15;
-            arrow_x[1] <= 25;
-            arrow_x[2] <= 35;
-            arrow_x[3] <= 45;
+				arrow_x[0] <= 12;
+            arrow_x[1] <= 29;
+            arrow_x[2] <= 48;
+            arrow_x[3] <= 66;
             // Player 2
-            arrow_x[4] <= 95;
-            arrow_x[5] <= 105;
-            arrow_x[6] <= 115;
-            arrow_x[7] <= 125;
+            arrow_x[4] <= 92;
+            arrow_x[5] <= 110;
+            arrow_x[6] <= 128;
+            arrow_x[7] <= 146;
             
             move_counter <= 0;
             perfect_hit <= 2'b00;
