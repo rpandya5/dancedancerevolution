@@ -1,4 +1,4 @@
-module countdown_music (
+module countdown_audio (
     // Inputs
     CLOCK_50,
     KEY,
