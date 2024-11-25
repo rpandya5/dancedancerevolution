@@ -138,42 +138,46 @@ module controller (
         end
         else begin
             // Default all outputs to 0
-            enable_title_screen = 0;
-            enable_title_audio = 0;
-            enable_countdown_screen = 0;
-            enable_countdown_audio = 0;
-            enable_song = 0;
+            title_screen = 0;
+            title_audio = 0;
+            
+            idle_screen = 0;
+            
+            countdown_logic = 0;
+            countdown_audio = 0;
+            
+            game_music = 0;
             game_active = 0;
-            show_pause_screen = 0;
-            show_game_over = 0;
+            gameover_logic = 0;
             
             // State-specific outputs
             case (current_state)
                 STARTUP: begin
-                    enable_title_screen = 1;
-                    enable_title_audio = 1;
+                    title_screen = 1;
+                    title_audio = 1;
                 end
 
                 IDLE: begin
-                    enable_title_screen = 1;  // Keep showing title screen
+                    idle_screen = 1; 
+                    title_audio = 1;
                 end
 
                 COUNTDOWN: begin
-                    enable_countdown_screen = 1;
-                    enable_countdown_audio = 1;
+                    countdown_logic = 1;
+                    countdown_audio = 1;
                 end
 
                 PLAYING: begin
-                    enable_song = 1;
+                    game_music = 1;
                     game_active = 1;
                 end
 
                 GAMEOVER: begin
-                    show_game_over = 1;
+                    gameover_logic = 1;
                 end
 
                 default: begin
-                    enable_title_screen = 1;
+                    title_screen = 1;
                 end
             endcase
         end
