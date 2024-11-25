@@ -1,4 +1,4 @@
-// THIS IS RIGHT AND CORRECT. updated nov 11
+// updated nov 25 4:48 pm -- COMPILED VERSION
 
 module input_processing (
     input clock,              // clock
