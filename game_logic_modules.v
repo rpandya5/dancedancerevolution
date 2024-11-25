@@ -1,11 +1,12 @@
+//updated nov 25 at 4:47 pm -- COMPILED VERSION
+
 module arrow_pattern_generator (
     input wire clock,                    
     input wire reset,                    
     input wire game_active,            
-    output reg [7:0] pattern_out,      // Each bit represents an arrow (UDLR)
-    output reg pattern_valid           // High when pattern_out has valid data
+    output reg [7:0] pattern_out,     
+    output reg pattern_valid           
 );
-
     // Pattern definitions - 4'b(UDLR)
     localparam PATTERN_UP    = 4'b1000;
     localparam PATTERN_DOWN  = 4'b0100;
@@ -20,17 +21,14 @@ module arrow_pattern_generator (
     localparam PAIR_DOWN_RIGHT= 4'b0101;
     localparam PAIR_LEFT_RIGHT= 4'b0011;
 
-    // LFSR for random pattern selection
     reg [15:0] lfsr;
     wire feedback = lfsr[15] ^ lfsr[14] ^ lfsr[12] ^ lfsr[3];
     
-    // Counter for timing
     reg [24:0] spawn_counter;
-    localparam SPAWN_INTERVAL = 25000000; // Adjust this value to change arrow spawn rate
+    localparam SPAWN_INTERVAL = 25000000;
     
-    // Initialize
     initial begin
-        lfsr = 16'hACE1;  // Non-zero seed
+        lfsr = 16'hACE1;
         pattern_valid = 0;
         pattern_out = 8'b0000;
         spawn_counter = 0;
@@ -43,36 +41,36 @@ module arrow_pattern_generator (
             pattern_out <= 8'b0000;
             spawn_counter <= 0;
         end 
-        else if (game_active) begin
-            // Update spawn counter
-            if (spawn_counter >= SPAWN_INTERVAL) begin
-                spawn_counter <= 0;
-                
-                // Update LFSR
-                lfsr <= {lfsr[14:0], feedback};
-                
-                // Generate new pattern
-					 case (lfsr[3:0])  // Use 4 bits for pattern selection
-						  // Single arrows (4/16 chance = 25%)
-						  4'b0000: pattern_out <= {PATTERN_UP, PATTERN_UP};  // Both players get up arrow
-						  4'b0001: pattern_out <= {PATTERN_DOWN, PATTERN_DOWN};  // Both players get down arrow
-						  4'b0010: pattern_out <= {PATTERN_LEFT, PATTERN_LEFT};  // Both players get left arrow
-						  4'b0011: pattern_out <= {PATTERN_RIGHT, PATTERN_RIGHT};  // Both players get right arrow
-						  
-						  // Pairs (12/16 chance = 75%)
-						  4'b0100, 4'b0101: pattern_out <= {PAIR_UP_DOWN, PAIR_UP_DOWN};
-						  4'b0110, 4'b0111: pattern_out <= {PAIR_UP_LEFT, PAIR_UP_LEFT};
-						  4'b1000, 4'b1001: pattern_out <= {PAIR_UP_RIGHT, PAIR_UP_RIGHT};
-						  4'b1010, 4'b1011: pattern_out <= {PAIR_DOWN_LEFT, PAIR_DOWN_LEFT};
-						  4'b1100, 4'b1101: pattern_out <= {PAIR_DOWN_RIGHT, PAIR_DOWN_RIGHT};
-						  4'b1110, 4'b1111: pattern_out <= {PAIR_LEFT_RIGHT, PAIR_LEFT_RIGHT};
-					 endcase
-                
-                pattern_valid <= 1;
+        else begin
+            if (game_active) begin
+                if (spawn_counter >= SPAWN_INTERVAL) begin
+                    spawn_counter <= 0;
+                    lfsr <= {lfsr[14:0], feedback};
+                    
+                    case (lfsr[3:0])
+                        4'b0000: pattern_out <= {PATTERN_UP, PATTERN_UP};
+                        4'b0001: pattern_out <= {PATTERN_DOWN, PATTERN_DOWN};
+                        4'b0010: pattern_out <= {PATTERN_LEFT, PATTERN_LEFT};
+                        4'b0011: pattern_out <= {PATTERN_RIGHT, PATTERN_RIGHT};
+                        4'b0100, 4'b0101: pattern_out <= {PAIR_UP_DOWN, PAIR_UP_DOWN};
+                        4'b0110, 4'b0111: pattern_out <= {PAIR_UP_LEFT, PAIR_UP_LEFT};
+                        4'b1000, 4'b1001: pattern_out <= {PAIR_UP_RIGHT, PAIR_UP_RIGHT};
+                        4'b1010, 4'b1011: pattern_out <= {PAIR_DOWN_LEFT, PAIR_DOWN_LEFT};
+                        4'b1100, 4'b1101: pattern_out <= {PAIR_DOWN_RIGHT, PAIR_DOWN_RIGHT};
+                        4'b1110, 4'b1111: pattern_out <= {PAIR_LEFT_RIGHT, PAIR_LEFT_RIGHT};
+                    endcase
+                    
+                    pattern_valid <= 1;
+                end
+                else begin
+                    spawn_counter <= spawn_counter + 1;
+                    pattern_valid <= 0;
+                end
             end
             else begin
-                spawn_counter <= spawn_counter + 1;
                 pattern_valid <= 0;
+                pattern_out <= 8'b0000;
+                spawn_counter <= 0;
             end
         end
     end
@@ -81,16 +79,19 @@ endmodule
 module score_tracker(
     input CLOCK_50,            // System clock
     input reset,               // Reset signal
-	 input [3:0] player_a_keys,     // Player A inputs
+    input [3:0] player_a_keys,     // Player A inputs
     input [3:0] player_b_keys,     // Player B inputs
     input perfect_hit_a,           // Perfect hit signal for player A
     input perfect_hit_b,           // Perfect hit signal for player B
+    input game_active,             // Game is in active state
+    input show_game_over,          // Game has ended
     output reg [6:0] HEX0,     // 7-segment display outputs
     output reg [6:0] HEX1,
     output reg [6:0] HEX2,
-    output reg [6:0] HEX3
+    output reg [6:0] HEX3,
+    output reg player_a_won,    // Player A win signal
+    output reg player_b_won     // Player B win signal
 );
-
     // Internal score counters (0-99) for each player
     reg [7:0] score_a;
     reg [7:0] score_b;
@@ -111,20 +112,24 @@ module score_tracker(
         seg7[9] = 7'b0010000;  // 9
         score_a = 8'd0;
         score_b = 8'd0;
+        player_a_won = 1'b0;
+        player_b_won = 1'b0;
     end
     
     // Edge detection for perfect_hit signals
     reg prev_perfect_hit_a, prev_perfect_hit_b;
     
-    // Score update logic
+    // Score update logic and winner determination
     always @(posedge CLOCK_50 or posedge reset) begin
         if (reset) begin
             score_a <= 8'd0;
             score_b <= 8'd0;
             prev_perfect_hit_a <= 0;
             prev_perfect_hit_b <= 0;
+            player_a_won <= 0;
+            player_b_won <= 0;
         end 
-        else begin
+        else if (game_active) begin
             // Player A score update
             prev_perfect_hit_a <= perfect_hit_a;
             if (perfect_hit_a && !prev_perfect_hit_a) begin
@@ -139,6 +144,25 @@ module score_tracker(
                 if (score_b < 8'd99) begin
                     score_b <= score_b + 1'd1;
                 end
+            end
+            
+            // Clear win signals during gameplay
+            player_a_won <= 0;
+            player_b_won <= 0;
+        end
+        else if (show_game_over) begin
+            // Determine winner when game ends
+            if (score_a > score_b) begin
+                player_a_won <= 1;
+                player_b_won <= 0;
+            end
+            else if (score_b > score_a) begin
+                player_a_won <= 0;
+                player_b_won <= 1;
+            end
+            else begin
+                player_a_won <= 0;  // Tie game - no winner
+                player_b_won <= 0;
             end
         end
     end
@@ -161,6 +185,7 @@ module arrow_game(
     input [3:0] player_b_keys,     // Player B inputs
     input pattern_valid,
     input [7:0] pattern_out,
+	 input game_active,
     output [7:0] VGA_R,
     output [7:0] VGA_G,
     output [7:0] VGA_B,
@@ -265,7 +290,7 @@ module arrow_game(
                 arrow_y[i] <= 0;
             end
         end
-        else begin
+        else if (game_active) begin
             // Pattern processing
             if (pattern_valid) begin
             // Player A arrows (lower 4 bits)
@@ -319,6 +344,16 @@ module arrow_game(
                     arrow_y[6] <= 0;
                 end
             end
+				else begin  // When game is not active
+					// Reset necessary values
+					perfect_hit_a <= 0;
+					perfect_hit_b <= 0;
+					arrow_active <= 0;
+					move_counter <= 0;
+					for (i = 0; i < 8; i = i + 1) begin
+						 arrow_y[i] <= 0;
+					end
+				end
         end
        
             // Update target zone status
@@ -458,16 +493,19 @@ module arrow_game(
         end
         
         // Draw all arrows
-        for (i = 0; i < 8; i = i + 1) begin
-            if (arrow_active[i] && is_arrow_pixel(x_counter, arrow_x[i], y_counter, arrow_y[i], i[1:0])) begin
-                case(i % 4)  // Use same colors for both players' arrows
-                    0: pixel_color = 3'b100; // left arrow red
-                    1: pixel_color = 3'b110; // up arrow yellow
-                    2: pixel_color = 3'b010; // right arrow green
-                    3: pixel_color = 3'b011; // down arrow cyan
-                endcase
-            end
-        end
+		  // Only draw arrows when game is active
+        if (game_active) begin
+			  for (i = 0; i < 8; i = i + 1) begin
+					if (arrow_active[i] && is_arrow_pixel(x_counter, arrow_x[i], y_counter, arrow_y[i], i[1:0])) begin
+						 case(i % 4)  // Use same colors for both players' arrows
+							  0: pixel_color = 3'b100; // left arrow red
+							  1: pixel_color = 3'b110; // up arrow yellow
+							  2: pixel_color = 3'b010; // right arrow green
+							  3: pixel_color = 3'b011; // down arrow cyan
+						 endcase
+					end
+			  end
+		  end
     end
     
     // VGA adapter instantiation
