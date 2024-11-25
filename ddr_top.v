@@ -13,6 +13,10 @@ module ddr_top (
     output reg [7:0] VGA_G,
     output reg [7:0] VGA_B,
     output reg VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK,
+
+    // FROM JIYAS TOP
+    input [9:0] SW;
+    output [6:0] HEX3, HEX2, HEX1, HEX0;
 );
 
     //////////////////////////////////////////////////////////////////////////////////////
@@ -28,17 +32,17 @@ module ddr_top (
     wire [3:0] player_b_led;   // LED outputs for player B
 
     // Assign GPIO pins to player inputs
-    // Player A (using odd GPIO pins)
-    assign player_a_raw[0] = GPIO_0[1];  // Up
-    assign player_a_raw[1] = GPIO_0[3];  // Down
-    assign player_a_raw[2] = GPIO_0[5];  // Left
-    assign player_a_raw[3] = GPIO_0[7];  // Right
+    // Player A (using even GPIO pins)
+    assign player_a_raw[0] = ~GPIO_0[0];  // up
+    assign player_a_raw[1] = ~GPIO_0[2];  // down
+    assign player_a_raw[2] = ~GPIO_0[4];  // right
+    assign player_a_raw[3] = ~GPIO_0[6];  // left
 
-    // Player B (using even GPIO pins)
-    assign player_b_raw[0] = GPIO_0[0];  // Up
-    assign player_b_raw[1] = GPIO_0[2];  // Down
-    assign player_b_raw[2] = GPIO_0[4];  // Left
-    assign player_b_raw[3] = GPIO_0[6];  // Right
+    // Player B (using odd GPIO pins)
+    assign player_b_raw[0] = ~GPIO_0[1];  // up
+    assign player_b_raw[1] = ~GPIO_0[3];  // down
+    assign player_b_raw[2] = ~GPIO_0[5];  // right
+    assign player_b_raw[3] = ~GPIO_0[7];  // left
 
     // Connect LEDs
     assign LEDR[9:6] = player_a_led;     // Player A LEDs
@@ -50,7 +54,7 @@ module ddr_top (
         .reset(~KEY[1]),             // Reset using SW[9]
         .a_in(player_a_raw),       // Player A raw inputs
         .b_in(player_b_raw),       // Player B raw inputs
-        .a_out(player_a_clean),    // Player A cleaned outputs
+        .a_out(player_a_clean),    // Player A cleaned outputs REPLACE ALL player_a_debounced with this
         .b_out(player_b_clean),    // Player B cleaned outputs
         .a_led(player_a_led),      // Player A LED indicators
         .b_led(player_b_led)       // Player B LED indicators
@@ -97,6 +101,62 @@ module ddr_top (
         .precise_timer(precise_timer),
         .state_start_time(state_start_time)
     );
+    //////////////////////////////////////////////////////////////////////////////////////
+    // ALL GAMEPLAY LOGIC
+    //////////////////////////////////////////////////////////////////////////////////////
+
+    // SCORING
+    wire perfect_hit_a;
+	wire perfect_hit_b;
+
+    // Instantiate score tracking module
+	score_tracker tracker_inst (
+		 .CLOCK_50(CLOCK_50),           // System clock
+        .reset(~KEY[1]),                 // Reset signal
+		 .player_a_keys(player_a_clean),    // Player A's debounced inputs
+         .player_b_keys(player_b_clean),    // Player B's debounced inputs
+		 .perfect_hit_a(perfect_hit_a),         // Perfect hit signal for Player A
+		 .perfect_hit_b(perfect_hit_b),         // Perfect hit signal for Player B
+		 .HEX0(HEX2),                   // Player A's score - ones digit
+		 .HEX1(HEX3),                   // Player A's score - tens digit
+		 .HEX2(HEX0),                   // Player B's score - ones digit
+		 .HEX3(HEX1)                    // Player B's score - tens digit
+	);
+    
+
+    // PATTERN GENERATOR INPUTS
+    wire [7:0] pattern_out;
+    wire pattern_valid;
+
+    //Instantiate pattern generator with simplified timing
+	arrow_pattern_generator pattern_gen (
+        .clock(CLOCK_50),
+        .reset(~KEY[1]),
+        .game_active(1'b1),
+        .pattern_out(pattern_out),
+        .pattern_valid(pattern_valid)
+    );
+
+    //Instantiate arrow module
+	 arrow_game game_inst(
+		 .CLOCK_50(CLOCK_50),           // System clock
+         .reset(~KEY[1]),                 // Reset signal
+		 .player_a_keys(player_a_clean),    // Player A's debounced inputs
+         .player_b_keys(player_b_clean),    // Player B's debounced inputs
+		 .VGA_R(VGA_R),                 // VGA color signals
+		 .VGA_G(VGA_G),
+		 .VGA_B(VGA_B),
+		 .VGA_HS(VGA_HS),               // VGA sync signals
+		 .VGA_VS(VGA_VS),
+		 .VGA_BLANK_N(VGA_BLANK_N),
+		 .VGA_SYNC_N(VGA_SYNC_N),
+		 .VGA_CLK(VGA_CLK),
+		 .perfect_hit_a(perfect_hit_a),         // Perfect hit output for Player A
+		 .perfect_hit_b(perfect_hit_b),         // Perfect hit output for Player B
+		 .pattern_valid(pattern_valid),         // Input from pattern generator
+		 .pattern_out(pattern_out)              // Pattern data from generator
+	 );
+    
     //////////////////////////////////////////////////////////////////////////////////////
     // FOR VGA BACKGROUNDS
     //////////////////////////////////////////////////////////////////////////////////////
