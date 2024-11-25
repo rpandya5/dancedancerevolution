@@ -1,4 +1,4 @@
-// updated nov 25 AT 12:45AM
+// updated nov 25 AT 4:43 PM -- COMPILED VERSION
 
 /* THIS DOCUMENT HAS ALL THE MODULES TO MAKE THE BACKGROUNDS FOR THE FOLLOWING THINGS SHOW UP:
 DOES NOT HAVE STUFF FOR THE GAMEPLAY BACKGROUND
@@ -19,30 +19,38 @@ module title_screen(
     input CLOCK_50,
     input resetn,              // Active low reset
     input enable,             // Enable signal from controller
-    output reg [7:0] VGA_R,
-    output reg [7:0] VGA_G,
-    output reg [7:0] VGA_B,
-    output reg VGA_HS,
-    output reg VGA_VS,
-    output reg VGA_BLANK_N,
-    output reg VGA_SYNC_N,
-    output reg VGA_CLK
+	 
+    // Change from reg to wire for VGA outputs
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
+    output VGA_BLANK_N,
+    output VGA_SYNC_N,
+    output VGA_CLK
 );
     // Internal signals
-    wire [2:0] VGA_COLOR;
-    wire [7:0] VGA_X;
-    wire [6:0] VGA_Y;
+    wire [2:0] color;         // Changed from VGA_COLOR to avoid confusion
+    wire [7:0] x;            // Changed from VGA_X
+    wire [6:0] y;            // Changed from VGA_Y
     wire plot;
     
     assign plot = enable; // Only plot when enabled
     
+    // Assign some default values to x, y, and color if needed
+    assign x = 8'd0;  // You'll need to generate proper x coordinates
+    assign y = 7'd0;  // You'll need to generate proper y coordinates
+    assign color = 3'd0;  // You'll need to set proper color values
+    
     vga_adapter VGA(
         .resetn(resetn),
         .clock(CLOCK_50),
-        .colour(VGA_COLOR),
-        .x(VGA_X),
-        .y(VGA_Y),
+        .colour(color),
+        .x(x),
+        .y(y),
         .plot(plot),
+        // Connect directly to module outputs
         .VGA_R(VGA_R),
         .VGA_G(VGA_G),
         .VGA_B(VGA_B),
@@ -66,14 +74,14 @@ module idle_screen(
     input CLOCK_50,
     input resetn,
     input enable,             // Enable signal from controller
-    output reg [7:0] VGA_R,
-    output reg [7:0] VGA_G,
-    output reg [7:0] VGA_B,
-    output reg VGA_HS,
-    output reg VGA_VS,
-    output reg VGA_BLANK_N,
-    output reg VGA_SYNC_N,
-    output reg VGA_CLK
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
+    output VGA_BLANK_N,
+    output VGA_SYNC_N,
+    output VGA_CLK
 );
     wire [2:0] VGA_COLOR;
     wire [7:0] VGA_X;
@@ -112,14 +120,14 @@ module pause_screen(
     input CLOCK_50,
     input resetn,
     input enable,             // Enable signal from controller
-    output reg [7:0] VGA_R,
-    output reg [7:0] VGA_G,
-    output reg [7:0] VGA_B,
-    output reg VGA_HS,
-    output reg VGA_VS,
-    output reg VGA_BLANK_N,
-    output reg VGA_SYNC_N,
-    output reg VGA_CLK
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
+    output VGA_BLANK_N,
+    output VGA_SYNC_N,
+    output VGA_CLK
 );
     wire [2:0] VGA_COLOR;
     wire [7:0] VGA_X;
@@ -158,14 +166,14 @@ module countdown_screen(
     input CLOCK_50,
     input resetn,
     input enable,             // Enable signal from controller
-    output reg [7:0] VGA_R,
-    output reg [7:0] VGA_G,
-    output reg [7:0] VGA_B,
-    output reg VGA_HS,
-    output reg VGA_VS,
-    output reg VGA_BLANK_N,
-    output reg VGA_SYNC_N,
-    output reg VGA_CLK
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
+    output VGA_BLANK_N,
+    output VGA_SYNC_N,
+    output VGA_CLK
 );
     wire [2:0] VGA_COLOR;
     wire [7:0] VGA_X;
@@ -204,14 +212,14 @@ module A_win_screen(
     input CLOCK_50,
     input resetn,
     input enable,             // Enable signal from controller
-    output reg [7:0] VGA_R,
-    output reg [7:0] VGA_G,
-    output reg [7:0] VGA_B,
-    output reg VGA_HS,
-    output reg VGA_VS,
-    output reg VGA_BLANK_N,
-    output reg VGA_SYNC_N,
-    output reg VGA_CLK
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
+    output VGA_BLANK_N,
+    output VGA_SYNC_N,
+    output VGA_CLK
 );
     wire [2:0] VGA_COLOR;
     wire [7:0] VGA_X;
@@ -250,14 +258,14 @@ module B_win_screen(
     input CLOCK_50,
     input resetn,
     input enable,             // Enable signal from controller
-    output reg [7:0] VGA_R,
-    output reg [7:0] VGA_G,
-    output reg [7:0] VGA_B,
-    output reg VGA_HS,
-    output reg VGA_VS,
-    output reg VGA_BLANK_N,
-    output reg VGA_SYNC_N,
-    output reg VGA_CLK
+    output [7:0] VGA_R,
+    output [7:0] VGA_G,
+    output [7:0] VGA_B,
+    output VGA_HS,
+    output VGA_VS,
+    output VGA_BLANK_N,
+    output VGA_SYNC_N,
+    output VGA_CLK
 );
     wire [2:0] VGA_COLOR;
     wire [7:0] VGA_X;
