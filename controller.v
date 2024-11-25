@@ -1,4 +1,4 @@
-// updated nov 18
+//updated november 25 4:22 am 
 
 module controller (
     input clock,          // clock (50MHz)
@@ -11,6 +11,7 @@ module controller (
     
     // Game control outputs
     output reg enable_title_screen,    // Show title image
+    output reg enable_idle_screen,    // Show title image
     output reg enable_title_audio,     // Play title music
     output reg enable_countdown_screen, // Show countdown animation
     output reg enable_countdown_audio,  // Play countdown beeps
@@ -20,10 +21,11 @@ module controller (
     output reg show_game_over,         // Show game over screen
     
     // Timing outputs for synchronization
-    output reg [63:0] precise_timer    // Using 64 bits for accurate timing
+    output reg [63:0] precise_timer,    // Using 64 bits for accurate timing
+    output reg [63:0] state_start_time  // Time when current state started
 );
 
-    // State definitions (using your specific encodings)
+    // State definitions
     parameter STARTUP    = 6'b000000;  // Title screen + music
     parameter IDLE      = 6'b000011;  // Waiting for start
     parameter COUNTDOWN = 6'b000101;  // 3-2-1-GO sequence
@@ -35,45 +37,59 @@ module controller (
     parameter CLOCK_50MHZ = 64'd50_000_000;  // 50 million ticks per second
     
     // Duration constants (in clock cycles)
-    parameter TITLE_LENGTH    = CLOCK_50MHZ * 64'd5;     // 5 seconds for title
-    parameter COUNTDOWN_TIME  = CLOCK_50MHZ * 64'd6;     // 6 seconds (6 beeps)
-    parameter SONG_LENGTH    = CLOCK_50MHZ * 64'd85;    // 85 seconds for gameplay
+    parameter TITLE_LENGTH    = CLOCK_50MHZ * 64'd32;  // 32 seconds for title
+    parameter COUNTDOWN_TIME  = CLOCK_50MHZ * 64'd5;   // 5 seconds
+    parameter SONG_LENGTH    = CLOCK_50MHZ * 64'd64;   // 64 seconds for gameplay
     
     // Internal registers
     reg [5:0] next_state;
     reg [5:0] stored_state;     // For pause state return
+    reg [63:0] stored_timer;    // Store timer value during pause
+    reg [63:0] pause_start_time; // When pause began
     reg [7:0] stored_outputs;   // Store enable signals during pause
 
-    // State register - handles reset and state transitions
+    // State register with reset
     always @(posedge clock or posedge reset) begin
-        if (reset)
+        if (reset) begin
             current_state <= IDLE;  // Reset goes to IDLE
-        else
+            precise_timer <= 64'd0;
+            state_start_time <= 64'd0;
+        end
+        else if (next_state != current_state) begin
+            // Update state_start_time when state changes
+            state_start_time <= precise_timer;
             current_state <= next_state;
+        end
+        else begin
+            current_state <= next_state;
+        end
     end
 
-    // Precise timer counter - tracks duration in each state
+    // Global timer counter
     always @(posedge clock or posedge reset) begin
         if (reset)
             precise_timer <= 64'd0;
         else if (current_state == PAUSE)
-            precise_timer <= precise_timer;  // Freeze timer during pause
-        else if (current_state == STARTUP || current_state == COUNTDOWN || 
-                current_state == PLAYING)
-            precise_timer <= precise_timer + 64'd1;
+            precise_timer <= stored_timer;  // Maintain time during pause
         else
-            precise_timer <= 64'd0;
+            precise_timer <= precise_timer + 64'd1;
     end
 
-    // Store state and outputs before entering pause
+    // Store state and timing info before entering pause
     always @(posedge clock) begin
         if (!pause && current_state != PAUSE) begin  // About to enter pause
             stored_state <= current_state;
-            stored_outputs <= {enable_title_screen, enable_title_audio, 
+            stored_timer <= precise_timer;
+            pause_start_time <= precise_timer;
+            stored_outputs <= {enable_title_screen, enable_idle_screen, enable_title_audio, 
                              enable_countdown_screen, enable_countdown_audio,
-                             enable_song, game_active, 1'b0, show_game_over};
+                             enable_song, game_active, show_pause_screen, 
+                             show_game_over};
         end
     end
+
+    // State duration calculation
+    wire [63:0] time_in_current_state = precise_timer - state_start_time;
 
     // Next state logic 
     always @(*) begin
@@ -81,28 +97,28 @@ module controller (
         
         case (current_state)
             STARTUP: begin
-                if (precise_timer >= TITLE_LENGTH)
+                if (time_in_current_state >= TITLE_LENGTH)
                     next_state = IDLE;
-                if (!pause)  // Can pause during startup
+                else if (!pause)  // Can pause during startup
                     next_state = PAUSE;
             end
 
             IDLE: begin
-                if (!start)  // Active low - start when key0 pressed
+                if (!start)  // Active low - start when pressed
                     next_state = COUNTDOWN;
-                if (!pause)
+                else if (!pause)
                     next_state = PAUSE;
             end
 
             COUNTDOWN: begin
-                if (precise_timer >= COUNTDOWN_TIME)
+                if (time_in_current_state >= COUNTDOWN_TIME)
                     next_state = PLAYING;
                 else if (!pause)  // Active low pause
                     next_state = PAUSE;
             end
 
             PLAYING: begin
-                if (precise_timer >= SONG_LENGTH)
+                if (time_in_current_state >= SONG_LENGTH)
                     next_state = GAMEOVER;
                 else if (!pause)  // Active low pause
                     next_state = PAUSE;
@@ -115,9 +131,9 @@ module controller (
             end
 
             GAMEOVER: begin
-                if (!start)  // Active low - restart game when key0 pressed
-                    next_state = IDLE;
-                if (!pause)
+                if (!start)  // Active low - restart game when pressed
+                    next_state = IDLE;  // Return to IDLE
+                else if (!pause)
                     next_state = PAUSE;
             end
 
@@ -126,29 +142,31 @@ module controller (
 
         // Global reset override
         if (reset)
-            next_state = IDLE;  // Reset always goes to IDLE
+            next_state = IDLE;  // Reset goes to IDLE
     end
 
     // Output logic
     always @(*) begin
+        // Default all outputs to 0
+        enable_title_screen = 0;
+        enable_idle_screen =0;
+        enable_title_audio = 0;
+        enable_countdown_screen = 0;
+        enable_countdown_audio = 0;
+        enable_song = 0;
+        game_active = 0;
+        show_pause_screen = 0;
+        show_game_over = 0;
+        
         if (current_state == PAUSE) begin
-            // During pause, maintain stored outputs and add pause screen
-            {enable_title_screen, enable_title_audio, 
+            // During pause, show pause screen and maintain stored outputs
+            show_pause_screen = 1;
+            {enable_title_screen, enable_title_audio, enable_idle_screen,
              enable_countdown_screen, enable_countdown_audio,
-             enable_song, game_active, show_pause_screen, show_game_over} = 
-             stored_outputs | (8'b00000010);  // OR with pause screen bit
+             enable_song, game_active, 
+             show_game_over} = stored_outputs[7:1];  // Drop pause bit from stored outputs and restore other signals
         end
         else begin
-            // Default all outputs to 0
-            enable_title_screen = 0;
-            enable_title_audio = 0;
-            enable_countdown_screen = 0;
-            enable_countdown_audio = 0;
-            enable_song = 0;
-            game_active = 0;
-            show_pause_screen = 0;
-            show_game_over = 0;
-            
             // State-specific outputs
             case (current_state)
                 STARTUP: begin
@@ -158,22 +176,21 @@ module controller (
 
                 IDLE: begin
                     enable_idle_screen = 1;
+                    enable_title_audio = 1;
                 end
 
                 COUNTDOWN: begin
-                    enable_countdown_visuals = 1; // output shud be cdown_NUM
+                    enable_countdown_screen = 1;
                     enable_countdown_audio = 1;
                 end
 
                 PLAYING: begin
                     enable_song = 1;
                     game_active = 1;
-                    enable_game_bg = 1;
                 end
 
                 GAMEOVER: begin
-                    // find winner function set to high, output enable_A_won / enable_B_won
-                    // show_game_over = 1; (remove this i think)
+                    show_game_over = 1;
                 end
 
                 default: begin
