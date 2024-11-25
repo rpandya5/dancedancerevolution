@@ -317,6 +317,7 @@ module ddr_top (
             VGA_CLK = pause_vga_clk;
         end
         else if (game_active) begin
+		 // CONNECT THIS TO GAME_LOGIC_MODULES.V
             // Show main gameplay screen
             // VGA_R = gameplay_vga_r;
             // VGA_G = gameplay_vga_g;
