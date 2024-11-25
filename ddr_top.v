@@ -290,8 +290,61 @@ module ddr_top (
             VGA_CLK = win_b_vga_clk;
         end
     end
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    // FOR AUDIOS
+    //////////////////////////////////////////////////////////////////////////////////////
     
+    // Title screen audio module
+    title_audio title_sound (
+        .CLOCK_50(CLOCK_50),
+        .KEY(KEY),
+        .AUD_ADCDAT(AUD_ADCDAT),
+        .enable_title_audio(enable_title_audio),
+        .start(start),
+        .AUD_BCLK(AUD_BCLK),
+        .AUD_ADCLRCK(AUD_ADCLRCK),
+        .AUD_DACLRCK(AUD_DACLRCK),
+        .FPGA_I2C_SDAT(FPGA_I2C_SDAT),
+        .AUD_XCK(AUD_XCK),
+        .AUD_DACDAT(AUD_DACDAT),
+        .FPGA_I2C_SCLK(FPGA_I2C_SCLK),
+        .SW(SW),
+        .LEDR(LEDR)
+    );
     
-    // ADD REMAINING INSTANTIATIONS HERE
-  
+    // Countdown audio module
+    countdown_audio countdown_sound (
+        .CLOCK_50(CLOCK_50),
+        .KEY(KEY),
+        .AUD_ADCDAT(AUD_ADCDAT),
+        .enable_countdown_audio(enable_countdown_audio),
+        .AUD_BCLK(AUD_BCLK),
+        .AUD_ADCLRCK(AUD_ADCLRCK),
+        .AUD_DACLRCK(AUD_DACLRCK),
+        .FPGA_I2C_SDAT(FPGA_I2C_SDAT),
+        .AUD_XCK(AUD_XCK),
+        .AUD_DACDAT(AUD_DACDAT),
+        .FPGA_I2C_SCLK(FPGA_I2C_SCLK),
+        .SW(SW),
+        .LEDR(LEDR)
+    );
+    
+    // Game music module
+    game_music game_sound (
+        .CLOCK_50(CLOCK_50),
+        .KEY(KEY),
+        .AUD_ADCDAT(AUD_ADCDAT),
+        .enable_song(enable_song),
+        .AUD_BCLK(AUD_BCLK),
+        .AUD_ADCLRCK(AUD_ADCLRCK),
+        .AUD_DACLRCK(AUD_DACLRCK),
+        .FPGA_I2C_SDAT(FPGA_I2C_SDAT),
+        .AUD_XCK(AUD_XCK),
+        .AUD_DACDAT(AUD_DACDAT),
+        .FPGA_I2C_SCLK(FPGA_I2C_SCLK),
+        .SW(SW),
+        .LEDR(LEDR)
+    );
+
 endmodule
