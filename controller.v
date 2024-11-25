@@ -1,5 +1,3 @@
-// updated nov 18
-
 module controller (
     input clock,          // clock (50MHz)
     input reset,          // Global reset (SW9)
@@ -35,7 +33,7 @@ module controller (
     parameter CLOCK_50MHZ = 64'd50_000_000;  // 50 million ticks per second
     
     // Duration constants (in clock cycles)
-    parameter TITLE_LENGTH    = CLOCK_50MHZ * 64'd5;     // 5 seconds for title
+    parameter TITLE_LENGTH    = CLOCK_50MHZ * 64'd32;     // 32 seconds for title
     parameter COUNTDOWN_TIME  = CLOCK_50MHZ * 64'd6;     // 6 seconds (6 beeps)
     parameter SONG_LENGTH    = CLOCK_50MHZ * 64'd85;    // 85 seconds for gameplay
     
