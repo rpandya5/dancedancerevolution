@@ -3,6 +3,7 @@ module game_music (
     CLOCK_50,
     KEY,
     AUD_ADCDAT,
+    enable_song,    // Added enable input
     
     // Bidirectionals
     AUD_BCLK,
@@ -14,15 +15,13 @@ module game_music (
     AUD_XCK,
     AUD_DACDAT,
     FPGA_I2C_SCLK,
-    SW,
-    LEDR
 );
 
 // Port declarations
 input               CLOCK_50;
 input       [3:0]   KEY;
-input       [3:0]   SW;
 input               AUD_ADCDAT;
+input               enable_song;    // New enable input
 inout               AUD_BCLK;
 inout               AUD_ADCLRCK;
 inout               AUD_DACLRCK;
@@ -30,7 +29,6 @@ inout               FPGA_I2C_SDAT;
 output              AUD_XCK;
 output              AUD_DACDAT;
 output              FPGA_I2C_SCLK;
-output      [9:0]   LEDR;
 
 // Audio interface signals
 wire                audio_in_available;
@@ -51,6 +49,7 @@ reg                 melody_snd;       // Melody wave
 reg         [18:0]  current_note;     // Current note frequency
 reg                 note_active;      // Note gate
 reg         [1:0]   difficulty_level; // Changes density of notes based on measure_count
+reg                 audio_playing;    // Added to track audio state
 
 // Drum Generation
 reg         [15:0]  lfsr_reg = 16'hACE1;  // Noise generator
@@ -107,7 +106,7 @@ always @(posedge CLOCK_50) begin
         drum_pattern_step <= 0;
         difficulty_level <= 0;
     end
-    else if (SW[0]) begin
+    else if (enable_song) begin
         // Melody generation
         if (note_active) begin
             if (melody_cnt >= current_note) begin
@@ -273,7 +272,7 @@ always @(posedge CLOCK_50) begin
 end
 
 // Sound synthesis
-wire [31:0] melody_sound = (SW[0] && note_active) ? 
+wire [31:0] melody_sound = (enable_song && note_active) ? 
     (melody_snd ? MELODY_VOL : -MELODY_VOL) : 32'd0;
 
 wire [31:0] kick_sound = kick_snd ? 
@@ -301,14 +300,6 @@ assign left_channel_audio_out = left_channel_audio_in +
 assign right_channel_audio_out = right_channel_audio_in + 
     melody_sound + kick_sound + snare_sound + hihat_sound;
 assign write_audio_out = audio_in_available & audio_out_allowed;
-
-// LED display - now includes difficulty level display
-assign LEDR[0] = SW[0];                     // Music active
-assign LEDR[3:1] = pattern_step[2:0];       // Show pattern position (lower bits)
-assign LEDR[5:4] = difficulty_level;        // Show current difficulty level
-assign LEDR[7:6] = measure_count[1:0];      // Show measure count (lower bits)
-assign LEDR[8] = note_active;               // Note playing
-assign LEDR[9] = melody_snd | kick_snd | snare_snd | hihat_snd;  // Sound activity
 
 // Audio Controller
 Audio_Controller Audio_Controller (
