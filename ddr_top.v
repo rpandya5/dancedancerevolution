@@ -35,7 +35,7 @@ module ddr_top (
     assign LEDR[3:0] = player_b_led;     // Player B LEDs
 
     // Instantiate the input processing module
-    button_processing input_proc (
+    input_processing input_proc (
         .clock(CLOCK_50),           // 50MHz clock
         .reset(~KEY[1]),             // Reset using SW[9]
         .a_in(player_a_raw),       // Player A raw inputs
@@ -46,6 +46,44 @@ module ddr_top (
         .b_led(player_b_led)       // Player B LED indicators
     );
 
-//    // ADD REMAINING INSTANTIATIONS HERE
+    // Controller signals
+    wire [5:0] current_state;
+    wire enable_title_screen;
+    wire enable_title_audio;
+    wire enable_countdown_screen;
+    wire enable_countdown_audio;
+    wire enable_song;
+    wire game_active;
+    wire show_pause_screen;
+    wire show_game_over;
+    wire [63:0] precise_timer;
+    wire [63:0] state_start_time;
+
+    // Instantiate the game controller
+    controller game_controller (
+        .clock(CLOCK_50),
+        .reset(~KEY[1]),            // Same reset as input processing
+        .start(KEY[3]),             // Start game with KEY[3]
+        .pause(KEY[2]),             // Pause game with KEY[2]
+        
+        // State output
+        .current_state(current_state),
+        
+        // Game control outputs
+        .enable_title_screen(enable_title_screen),
+        .enable_title_audio(enable_title_audio),
+        .enable_countdown_screen(enable_countdown_screen),
+        .enable_countdown_audio(enable_countdown_audio),
+        .enable_song(enable_song),
+        .game_active(game_active),
+        .show_pause_screen(show_pause_screen),
+        .show_game_over(show_game_over),
+        
+        // Timing outputs
+        .precise_timer(precise_timer),
+        .state_start_time(state_start_time)
+    );
+
+    // ADD REMAINING INSTANTIATIONS HERE
   
 endmodule
