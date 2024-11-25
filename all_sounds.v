@@ -1,3 +1,5 @@
+//updated nov 25 at 4:44 pm -- COMPILED VERSION
+
 module title_audio (
     // Inputs
     CLOCK_50,
@@ -16,15 +18,12 @@ module title_audio (
     AUD_XCK,
     AUD_DACDAT,
     FPGA_I2C_SCLK,
-    SW,
-    LEDR,
     title_audio_done      // New output to signal when audio is complete
 );
 
 // Port declarations
 input               CLOCK_50;
 input       [3:0]   KEY;
-input       [3:0]   SW;
 input               AUD_ADCDAT;
 input               enable_title_audio;
 input               start;             // KEY[3] for start button
@@ -36,7 +35,6 @@ inout               FPGA_I2C_SDAT;
 output              AUD_XCK;
 output              AUD_DACDAT;
 output              FPGA_I2C_SCLK;
-output      [9:0]   LEDR;
 
 // Internal Wires
 wire                audio_in_available;
@@ -69,10 +67,6 @@ parameter NOTE_E = 19'd18968;    // ~1318 Hz (E6)
 parameter NOTE_G = 19'd15944;    // ~1568 Hz (G6)
 parameter NOTE_A = 19'd14205;    // ~1760 Hz (A6)
 parameter NOTE_C_HIGH = 19'd11945; // ~2093 Hz (C7)
-
-// LED Control
-assign LEDR[0] = audio_playing;  // LED indicator when music is playing
-assign LEDR[9:1] = {pattern_step[4:0], loop_count[1:0], 2'b00};
 
 // Sequential Logic
 always @(posedge CLOCK_50) begin
@@ -218,15 +212,12 @@ module countdown_audio (
     // Outputs
     AUD_XCK,
     AUD_DACDAT,
-    FPGA_I2C_SCLK,
-    SW,
-    LEDR    
+    FPGA_I2C_SCLK
 );
 
 // Port declarations
 input               CLOCK_50;
 input       [3:0]   KEY;
-input       [3:0]   SW;
 input               AUD_ADCDAT;
 input               enable_countdown_audio;  // New enable input
 inout               AUD_BCLK;
@@ -236,7 +227,6 @@ inout               FPGA_I2C_SDAT;
 output              AUD_XCK;
 output              AUD_DACDAT;
 output              FPGA_I2C_SCLK;
-output      [9:0]   LEDR;   
 
 // Internal Wires
 wire                audio_in_available;
@@ -263,10 +253,6 @@ parameter LAST_BEEP_LENGTH = 32'd35000000; // 0.7 second for "GO"
 
 // Sound frequency control
 wire [18:0] delay = 19'd40000;  // Fixed frequency for all beeps
-
-// LED Control
-assign LEDR[0] = audio_playing && beep_active;  // LED on during beeps
-assign LEDR[9:1] = 9'b0;  // Other LEDs off
 
 // Sequential Logic
 always @(posedge CLOCK_50) begin
