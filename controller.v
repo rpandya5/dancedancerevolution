@@ -9,6 +9,7 @@ module controller (
     
     // Game control outputs
     output reg enable_title_screen,    // Show title image
+    output reg enable_idle_screen,    // Show title image
     output reg enable_title_audio,     // Play title music
     output reg enable_countdown_screen, // Show countdown animation
     output reg enable_countdown_audio,  // Play countdown beeps
@@ -78,7 +79,7 @@ module controller (
             stored_state <= current_state;
             stored_timer <= precise_timer;
             pause_start_time <= precise_timer;
-            stored_outputs <= {enable_title_screen, enable_title_audio, 
+            stored_outputs <= {enable_title_screen, enable_idle_screen, enable_title_audio, 
                              enable_countdown_screen, enable_countdown_audio,
                              enable_song, game_active, show_pause_screen, 
                              show_game_over};
@@ -146,6 +147,7 @@ module controller (
     always @(*) begin
         // Default all outputs to 0
         enable_title_screen = 0;
+        enable_idle_screen =0;
         enable_title_audio = 0;
         enable_countdown_screen = 0;
         enable_countdown_audio = 0;
@@ -157,7 +159,7 @@ module controller (
         if (current_state == PAUSE) begin
             // During pause, show pause screen and maintain stored outputs
             show_pause_screen = 1;
-            {enable_title_screen, enable_title_audio, 
+            {enable_title_screen, enable_title_audio, enable_idle_screen,
              enable_countdown_screen, enable_countdown_audio,
              enable_song, game_active, 
              show_game_over} = stored_outputs[7:1];  // Drop pause bit from stored outputs and restore other signals
@@ -171,7 +173,7 @@ module controller (
                 end
 
                 IDLE: begin
-                    enable_title_screen = 1;
+                    enable_idle_screen = 1;
                     enable_title_audio = 1;
                 end
 
