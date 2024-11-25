@@ -1,4 +1,4 @@
-//updated november 25 4:22 am 
+//updated november 25 4:45 pm -- COMPILED VERSION
 
 module controller (
     input clock,          // clock (50MHz)
@@ -44,49 +44,48 @@ module controller (
     // Internal registers
     reg [5:0] next_state;
     reg [5:0] stored_state;     // For pause state return
+    reg [63:0] next_timer;      // Added this declaration
     reg [63:0] stored_timer;    // Store timer value during pause
     reg [63:0] pause_start_time; // When pause began
     reg [7:0] stored_outputs;   // Store enable signals during pause
 
+
     // State register with reset
     always @(posedge clock or posedge reset) begin
-        if (reset) begin
-            current_state <= IDLE;  // Reset goes to IDLE
-            precise_timer <= 64'd0;
-            state_start_time <= 64'd0;
-        end
-        else if (next_state != current_state) begin
-            // Update state_start_time when state changes
-            state_start_time <= precise_timer;
-            current_state <= next_state;
-        end
-        else begin
-            current_state <= next_state;
-        end
-    end
-
-    // Global timer counter
-    always @(posedge clock or posedge reset) begin
-        if (reset)
-            precise_timer <= 64'd0;
-        else if (current_state == PAUSE)
-            precise_timer <= stored_timer;  // Maintain time during pause
-        else
-            precise_timer <= precise_timer + 64'd1;
-    end
+		 if (reset) begin
+			  current_state <= IDLE;
+			  precise_timer <= 64'd0;
+			  state_start_time <= 64'd0;
+		 end
+		 else begin
+			  current_state <= next_state;
+			  precise_timer <= next_timer;
+			  
+			  if (next_state != current_state) begin
+					state_start_time <= precise_timer;
+			  end
+		 end
+	end
 
     // Store state and timing info before entering pause
     always @(posedge clock) begin
-        if (!pause && current_state != PAUSE) begin  // About to enter pause
+        if (!pause && current_state != PAUSE) begin
             stored_state <= current_state;
             stored_timer <= precise_timer;
             pause_start_time <= precise_timer;
             stored_outputs <= {enable_title_screen, enable_idle_screen, enable_title_audio, 
                              enable_countdown_screen, enable_countdown_audio,
-                             enable_song, game_active, show_pause_screen, 
-                             show_game_over};
+                             enable_song, game_active, show_game_over}; // Changed to match restore order
         end
     end
+	
+	// Timer next value logic
+	always @(*) begin
+		 if (current_state == PAUSE)
+			  next_timer = stored_timer;
+		 else
+			  next_timer = precise_timer + 64'd1;
+	end
 
     // State duration calculation
     wire [63:0] time_in_current_state = precise_timer - state_start_time;
@@ -159,13 +158,10 @@ module controller (
         show_game_over = 0;
         
         if (current_state == PAUSE) begin
-            // During pause, show pause screen and maintain stored outputs
-            show_pause_screen = 1;
-            {enable_title_screen, enable_title_audio, enable_idle_screen,
-             enable_countdown_screen, enable_countdown_audio,
-             enable_song, game_active, 
-             show_game_over} = stored_outputs[7:1];  // Drop pause bit from stored outputs and restore other signals
-        end
+			  show_pause_screen = 1;
+			  {enable_title_screen, enable_idle_screen, enable_title_audio, enable_countdown_screen, enable_countdown_audio, enable_song, game_active, show_game_over} = stored_outputs; // Removed [7:1], matched store order
+		  end
+		  
         else begin
             // State-specific outputs
             case (current_state)
