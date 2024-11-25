@@ -34,8 +34,8 @@ module controller (
     
     // Duration constants (in clock cycles)
     parameter TITLE_LENGTH    = CLOCK_50MHZ * 64'd32;     // 32 seconds for title
-    parameter COUNTDOWN_TIME  = CLOCK_50MHZ * 64'd6;     // 6 seconds (6 beeps)
-    parameter SONG_LENGTH    = CLOCK_50MHZ * 64'd85;    // 85 seconds for gameplay
+    parameter COUNTDOWN_TIME  = CLOCK_50MHZ * 64'd5;     // 5 seconds
+    parameter SONG_LENGTH    = CLOCK_50MHZ * 64'd64;    // 64 seconds for gameplay
     
     // Internal registers
     reg [5:0] next_state;
@@ -86,7 +86,7 @@ module controller (
             end
 
             IDLE: begin
-                if (!start)  // Active low - start when key0 pressed
+                if (!start)  // Active low - start when key3 pressed
                     next_state = COUNTDOWN;
                 if (!pause)
                     next_state = PAUSE;
@@ -113,7 +113,7 @@ module controller (
             end
 
             GAMEOVER: begin
-                if (!start)  // Active low - restart game when key0 pressed
+                if (!start)  // Active low - restart game when key3 pressed
                     next_state = IDLE;
                 if (!pause)
                     next_state = PAUSE;
