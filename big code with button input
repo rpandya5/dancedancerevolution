@@ -1,4 +1,14 @@
-//last updated nov 25 1:17 am
+//player B
+//GPIO[0] left
+//GPIO[2] up
+//GPIO[4] right
+//GPIO[6] down
+
+//player A
+//GPIO[1] left
+//GPIO[3] up
+//GPIO[5] right
+//GPIO[7] down
 
 module vga_demo(CLOCK_50, SW, KEY, GPIO_0, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK, HEX3, HEX2, HEX1, HEX0,  LEDR);
 	input CLOCK_50;	
@@ -25,16 +35,16 @@ module vga_demo(CLOCK_50, SW, KEY, GPIO_0, VGA_R, VGA_G, VGA_B, VGA_HS, VGA_VS, 
    wire [3:0] player_b_raw; // up, down, right, left for player B
 	
 	// Map GPIO pins to player inputs (GPIO 1,3,5,7 for player A)
-   assign player_a_raw[0] = ~GPIO_0[1];  // up
-   assign player_a_raw[1] = ~GPIO_0[3];  // down
-   assign player_a_raw[2] = ~GPIO_0[5];  // right
-   assign player_a_raw[3] = ~GPIO_0[7];  // left
+   assign player_a_raw[0] = ~GPIO_0[0];  // up
+   assign player_a_raw[1] = ~GPIO_0[2];  // down
+   assign player_a_raw[2] = ~GPIO_0[4];  // right
+   assign player_a_raw[3] = ~GPIO_0[6];  // left
     
    // Map GPIO pins to player inputs (GPIO 0,2,4,6 for player B)
-   assign player_b_raw[0] = ~GPIO_0[0];  // up
-   assign player_b_raw[1] = ~GPIO_0[2];  // down
-   assign player_b_raw[2] = ~GPIO_0[4];  // right
-   assign player_b_raw[3] = ~GPIO_0[6];  // left
+   assign player_b_raw[0] = ~GPIO_0[1];  // up
+   assign player_b_raw[1] = ~GPIO_0[3];  // down
+   assign player_b_raw[2] = ~GPIO_0[5];  // right
+   assign player_b_raw[3] = ~GPIO_0[7];  // left
     
    // Map LEDs to show debounced outputs for both players
    assign LEDR[3:0] = player_a_debounced;    // Show debounced player A outputs
