@@ -1,16 +1,16 @@
-// WITH MUSIC
+//FINAL TOP MODULE - edited: 9:34 AM
 
-//player B
-//GPIO[0] left
-//GPIO[2] up
-//GPIO[4] right
-//GPIO[6] down
-
-//player A
+//Player A
 //GPIO[1] left
 //GPIO[3] up
 //GPIO[5] right
 //GPIO[7] down
+
+//Player B
+//GPIO[0] left
+//GPIO[2] up
+//GPIO[4] right
+//GPIO[6] down
 
 module ddr_top(
     CLOCK_50, 
@@ -42,60 +42,52 @@ module ddr_top(
     FPGA_I2C_SCLK
 );
 
-    // Input ports
     input CLOCK_50;    
-    input [9:0] SW;        // SW[9] for reset
-    input [3:0] KEY;       // menu options
-    input [7:0] GPIO_0;    // player inputs
-    input AUD_ADCDAT;      // Audio input
+	 input [9:0] SW; //reset switch
+    input [3:0] KEY;
+    input [7:0] GPIO_0;
+    input AUD_ADCDAT;
     
-    // Bidirectional audio ports
     inout AUD_BCLK;     
     inout AUD_ADCLRCK;  
     inout AUD_DACLRCK;  
     inout FPGA_I2C_SDAT;
     
-    // Output ports
     output [7:0] VGA_R;
     output [7:0] VGA_G;
     output [7:0] VGA_B;
     output VGA_HS, VGA_VS, VGA_BLANK_N, VGA_SYNC_N, VGA_CLK;
-    output [6:0] HEX5, HEX4, HEX3, HEX2, HEX1, HEX0;
-    output [9:0] LEDR;     // showing debounced outputs
+    output [6:0] HEX5, HEX4, HEX3, HEX2, HEX1, HEX0; //display for timer and scores
+	 output [9:0] LEDR; //outputs debounced output
     output AUD_XCK;      
     output AUD_DACDAT;   
     output FPGA_I2C_SCLK;
     
-    // Internal wires
     wire [3:0] player_a_debounced;
     wire [3:0] player_b_debounced;
     wire perfect_hit_a;
     wire perfect_hit_b;
     
-    // Wire for pattern generator outputs
     wire [7:0] pattern_out;
     wire pattern_valid;
     
-    wire [3:0] player_a_raw; // up, down, right, left for player A
-    wire [3:0] player_b_raw; // up, down, right, left for player B
+    wire [3:0] player_a_raw;
+    wire [3:0] player_b_raw;
 	
-	// Map GPIO pins to player inputs (GPIO 1,3,5,7 for player A)
-   assign player_a_raw[0] = ~GPIO_0[0];  // up
-   assign player_a_raw[1] = ~GPIO_0[2];  // down
-   assign player_a_raw[2] = ~GPIO_0[4];  // right
-   assign player_a_raw[3] = ~GPIO_0[6];  // left
+    assign player_a_raw[0] = ~GPIO_0[0];
+    assign player_a_raw[1] = ~GPIO_0[2];
+    assign player_a_raw[2] = ~GPIO_0[4];
+    assign player_a_raw[3] = ~GPIO_0[6];
     
-   // Map GPIO pins to player inputs (GPIO 0,2,4,6 for player B)
-   assign player_b_raw[0] = ~GPIO_0[1];  // up
-   assign player_b_raw[1] = ~GPIO_0[3];  // down
-   assign player_b_raw[2] = ~GPIO_0[5];  // right
-   assign player_b_raw[3] = ~GPIO_0[7];  // left
+    assign player_b_raw[0] = ~GPIO_0[1];
+    assign player_b_raw[1] = ~GPIO_0[3];
+    assign player_b_raw[2] = ~GPIO_0[5];
+    assign player_b_raw[3] = ~GPIO_0[7];
     
-   // Map LEDs to show debounced outputs for both players
-   assign LEDR[3:0] = player_a_debounced;    // Show debounced player A outputs
-    assign LEDR[7:4] = player_b_debounced;    // Show debounced player B outputs
-    assign LEDR[8] = |player_a_raw;           // Light up if any player A button is pressed
-    assign LEDR[9] = |player_b_raw;           // Light up if any player B button is pressed
+    assign LEDR[3:0] = player_a_debounced; //debounced player A outputs
+    assign LEDR[7:4] = player_b_debounced; //debounced player B outputs
+    assign LEDR[8] = |player_a_raw; //lights up if any player A button is pressed
+    assign LEDR[9] = |player_b_raw; //lights up if any player B button is pressed
 	 
 	 wire game_over;
 	 
@@ -108,7 +100,6 @@ module ddr_top(
 	 );
 	
 	
-	//Instantiate pattern generator with simplified timing
 	arrow_pattern_generator pattern_gen (
         .clock(CLOCK_50),
         .reset(SW[9]),
@@ -117,7 +108,6 @@ module ddr_top(
         .pattern_valid(pattern_valid)
     );
 	
-	// Instantiate input processing module
    input_processing input_proc (
         .clock(CLOCK_50),
         .reset(SW[9]),
@@ -127,43 +117,40 @@ module ddr_top(
         .b_out(player_b_debounced)
     );
 	
-	// Instantiate score tracking module
 	score_tracker tracker_inst (
-		 .CLOCK_50(CLOCK_50),           // System clock
-		 .reset(SW[9]),                 // Reset signal
-		 .player_a_keys(player_a_debounced),    // Player A's debounced inputs
-		 .player_b_keys(player_b_debounced),    // Player B's debounced inputs
-		 .perfect_hit_a(perfect_hit_a),         // Perfect hit signal for Player A
-		 .perfect_hit_b(perfect_hit_b),         // Perfect hit signal for Player B
-		 .HEX0(HEX2),                   // Player A's score - ones digit
-		 .HEX1(HEX3),                   // Player A's score - tens digit
-		 .HEX2(HEX0),                   // Player B's score - ones digit
-		 .HEX3(HEX1)                    // Player B's score - tens digit
+		 .CLOCK_50(CLOCK_50),
+		 .reset(SW[9]),
+		 .player_a_keys(player_a_debounced),
+		 .player_b_keys(player_b_debounced),
+		 .perfect_hit_a(perfect_hit_a),
+		 .perfect_hit_b(perfect_hit_b),
+		 .HEX0(HEX2), // Player A's score - ones digit
+		 .HEX1(HEX3), // Player A's score - tens digit
+		 .HEX2(HEX0), // Player B's score - ones digit
+		 .HEX3(HEX1) // Player B's score - tens digit
 	);
 	 
-	 //Instantiate arrow module
 	 arrow_game game_inst(
-		 .CLOCK_50(CLOCK_50),           // System clock
-		 .reset(SW[9]),                 // Reset signal
-		 .player_a_keys(player_a_debounced),    // Player A's debounced inputs
-		 .player_b_keys(player_b_debounced),    // Player B's debounced inputs
-		 .VGA_R(VGA_R),                 // VGA color signals
+		 .CLOCK_50(CLOCK_50),
+		 .reset(SW[9]),
+		 .player_a_keys(player_a_debounced),
+		 .player_b_keys(player_b_debounced),
+		 .VGA_R(VGA_R),
 		 .VGA_G(VGA_G),
 		 .VGA_B(VGA_B),
-		 .VGA_HS(VGA_HS),               // VGA sync signals
+		 .VGA_HS(VGA_HS),
 		 .VGA_VS(VGA_VS),
 		 .VGA_BLANK_N(VGA_BLANK_N),
 		 .VGA_SYNC_N(VGA_SYNC_N),
 		 .VGA_CLK(VGA_CLK),
-		 .perfect_hit_a(perfect_hit_a),         // Perfect hit output for Player A
-		 .perfect_hit_b(perfect_hit_b),         // Perfect hit output for Player B
-		 .pattern_valid(pattern_valid),         // Input from pattern generator
-		 .pattern_out(pattern_out),              // Pattern data from generator
+		 .perfect_hit_a(perfect_hit_a),
+		 .perfect_hit_b(perfect_hit_b),
+		 .pattern_valid(pattern_valid),
+		 .pattern_out(pattern_out),
 		 .game_over(game_over)
 	 );
 	
 
-    // Instantiate the DDR audio module
     game_music music_gen (
         .CLOCK_50(CLOCK_50),
         .KEY(KEY),
