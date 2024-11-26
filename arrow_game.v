@@ -5,8 +5,8 @@ module arrow_game(
     input reset,
     input [3:0] player_a_keys,
     input [3:0] player_b_keys,
-    input pattern_valid,
-    input [7:0] pattern_out,
+    input pattern_valid, //checks if new pattern is ready
+    input [7:0] pattern_out, //current arrow pattern
 	 input game_over,
     output [7:0] VGA_R,
     output [7:0] VGA_G,
@@ -33,13 +33,13 @@ module arrow_game(
     
     reg [7:0] arrow_x [7:0]; //x position
     reg [6:0] arrow_y [7:0]; //y position
-    reg [7:0] arrow_active;
-    reg [19:0] move_counter;
+    reg [7:0] arrow_active; //current arrows on screen
+    reg [19:0] move_counter; //arrow speed controller
 	 
 	 //flash feature
 	 reg [7:0] box_flash;
 	 reg [19:0] flash_counter;
-	 parameter FLASH_DURATION = 1000000;
+	 parameter FLASH_DURATION = 1000000; //length of flash on hit
     
     reg [7:0] x_counter;
     reg [6:0] y_counter;
@@ -64,7 +64,8 @@ module arrow_game(
 		  box_flash = 8'b0;
 		  flash_counter = 20'b0;
     end
-
+	
+	 //checking bounds of screen
     always @(posedge CLOCK_50 or posedge reset) begin
         if (reset) begin
             x_counter <= 8'd0;
@@ -113,11 +114,11 @@ module arrow_game(
             end
         end
 		  else if (!game_over)begin
-            if (pattern_valid) begin
+            if (pattern_valid) begin //new pattern from pattern generator
             if (pattern_out[3]) begin //player A up arrow
-                if (!arrow_active[1]) begin
-                    arrow_active[1] <= 1;
-                    arrow_y[1] <= 0;
+                if (!arrow_active[1]) begin //if no up arrow already active
+                    arrow_active[1] <= 1; //activate up arrow
+                    arrow_y[1] <= 0; //start at top of screen
                 end
             end
             if (pattern_out[2]) begin //player A down arrow
@@ -170,7 +171,8 @@ module arrow_game(
             prev_player_a_keys <= player_a_keys;
             prev_player_b_keys <= player_b_keys;
             
-            for (i = 0; i < 4; i = i + 1) begin
+				//checks if arrow is at right height and column
+            for (i = 0; i < 4; i = i + 1) begin //player A
                 in_target_zone[i] <= (
                     arrow_y[i] >= (TARGET_Y - HIT_RANGE) && 
                     arrow_y[i] <= (TARGET_Y + HIT_RANGE) &&
@@ -188,7 +190,7 @@ module arrow_game(
                 end
             end
             
-            for (i = 4; i < 8; i = i + 1) begin
+            for (i = 4; i < 8; i = i + 1) begin //player B
                 in_target_zone[i] <= (
                     arrow_y[i] >= (TARGET_Y - HIT_RANGE) && 
                     arrow_y[i] <= (TARGET_Y + HIT_RANGE) &&
@@ -197,16 +199,16 @@ module arrow_game(
                 );
                 
                 if (player_b_keys[i-4] && !prev_player_b_keys[i-4]) begin
-                    if (arrow_active[i] && in_target_zone[i]) begin
+                    if (arrow_active[i] && in_target_zone[i]) begin //when hit is detected
                         perfect_hit_b <= 1;
                         arrow_active[i] <= 0;
-								box_flash[i] <= 1;
+								box_flash[i] <= 1; //start flash
 								flash_counter <= 0;
                     end
                 end
             end
 
-            //arrow movement
+            //arrow movement - counter counts to MOVE_SPEED, when reached, move each arrow down a pixel and remove arrows that reach bottom
             if (move_counter >= MOVE_SPEED) begin
                 move_counter <= 0;
                 for (i = 0; i < 8; i = i + 1) begin
@@ -246,11 +248,11 @@ module arrow_game(
                 0: begin
                     is_arrow_pixel = (x >= arrow_x && x < arrow_x + ARROW_HEIGHT &&
                                     y >= arrow_y && y < arrow_y + ARROW_WIDTH &&
-                                    ((y == arrow_y + 3) ||
-                                     (x == arrow_x && y == arrow_y + 3) ||
-                                     (x == arrow_x + 1 && y >= arrow_y + 2 && y <= arrow_y + 4) ||
-                                     (x == arrow_x + 2 && y >= arrow_y + 1 && y <= arrow_y + 5) ||
-                                     (x >= arrow_x + 3 && x <= arrow_x + 6 && y == arrow_y + 3)));
+                                    ((y == arrow_y + 3) || //horizontal shaft
+                                     (x == arrow_x && y == arrow_y + 3) || //arrow tip
+                                     (x == arrow_x + 1 && y >= arrow_y + 2 && y <= arrow_y + 4) || //arrow head one side
+                                     (x == arrow_x + 2 && y >= arrow_y + 1 && y <= arrow_y + 5) || //arrow head other side
+                                     (x >= arrow_x + 3 && x <= arrow_x + 6 && y == arrow_y + 3))); //back of shaft
                 end
                 
                 1: begin
@@ -298,7 +300,7 @@ module arrow_game(
         //p1 boxes
         for (i = 0; i < 4; i = i + 1) begin
             if (y_counter >= TARGET_Y - BOX_SIZE && y_counter < TARGET_Y + BOX_SIZE && x_counter >= (P1_TARGET_X + (i * (BOX_SIZE + BOX_SPACING))) && x_counter < (P1_TARGET_X +(i * (BOX_SIZE + BOX_SPACING)) + BOX_SIZE)) begin
-                pixel_color = box_flash[i] ? 3'b111 : 3'b101;
+                pixel_color = box_flash[i] ? 3'b111 : 3'b101; //normal is magenta, flashing is white
             end
         end
         
