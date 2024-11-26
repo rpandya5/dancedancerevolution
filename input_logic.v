@@ -1,37 +1,34 @@
-// updated nov 25 4:48 pm -- COMPILED VERSION
+//FULLY WORKING no end updated nov 26 1:40 am
 
-module input_processing (
-    input clock,              // clock
-    input reset,             // single reset signal for both players
+module input_processing(
+    input clock,              // Changed from CLOCK_50 to match interface
+    input reset,              // Changed from SW[9] to direct reset input
     
     // raw inputs (up,down,left,right)
     input [3:0] a_in,       // Player A raw inputs
     input [3:0] b_in,       // Player B raw inputs
     
     // cleaned outputs
-    output reg [3:0] a_out,
-    output reg [3:0] b_out,
-    
-    // LED indicators
-    output reg [3:0] a_led,
-    output reg [3:0] b_led
+    output reg [3:0] a_out,  // Changed from single a_out to both a_out and b_out
+    output reg [3:0] b_out
 );
-    // parameters
-    parameter DB = 1_000_000;  // 20ms at 50MHz (50M * 0.02)
     
-    // synchronizer registers for each player
+    // Parameters
+    parameter DB = 500_000;  // 20ms at 50MHz (50M * 0.02)
+    
+    // Synchronizer registers for each player
     reg [3:0] a_sync1, a_sync2;  // Two flip-flops for player A
     reg [3:0] b_sync1, b_sync2;  // Two flip-flops for player B
     
-    // debounce counters - one for each button
+    // Debounce counters - one for each button
     reg [19:0] a_count [3:0];  // 20 bits for counting to 1M
     reg [19:0] b_count [3:0];
     
-    // current button states
+    // Current button states
     reg [3:0] a_state;
     reg [3:0] b_state;
     
-    // two-stage synchronizer
+    // Two-stage synchronizer
     always @(posedge clock) begin
         // Player A synchronizer
         a_sync1 <= a_in;
@@ -42,19 +39,17 @@ module input_processing (
         b_sync2 <= b_sync1;
     end
     
-    // debouncing and output logic
+    // Debouncing and output logic
     integer i;
     
     always @(posedge clock) begin
         if (reset) begin
             // Reset player A
             a_out <= 4'b0;
-            a_led <= 4'b0;
             a_state <= 4'b0;
             
             // Reset player B
             b_out <= 4'b0;
-            b_led <= 4'b0;
             b_state <= 4'b0;
             
             // Reset all counters
@@ -72,7 +67,6 @@ module input_processing (
                     else begin // Button pressed for enough time
                         a_state[i] <= a_sync2[i];
                         a_out[i] <= a_sync2[i];
-                        a_led[i] <= a_sync2[i];
                         a_count[i] <= 20'd0;
                     end
                 end
@@ -88,7 +82,6 @@ module input_processing (
                     else begin // Button pressed for enough time
                         b_state[i] <= b_sync2[i];
                         b_out[i] <= b_sync2[i];
-                        b_led[i] <= b_sync2[i];
                         b_count[i] <= 20'd0;
                     end
                 end
@@ -98,3 +91,4 @@ module input_processing (
         end
     end
 endmodule
+
