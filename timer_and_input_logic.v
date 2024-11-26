@@ -9,8 +9,9 @@ module input_processing(
     output reg [3:0] b_out
 );
     
-    parameter DB = 500_000;
-    
+    parameter DB = 500_000; //debouncing time - 20 ms at 50MHz
+
+    //synchronizer registers for both players
     reg [3:0] a_sync1, a_sync2;
     reg [3:0] b_sync1, b_sync2;
     
@@ -19,7 +20,8 @@ module input_processing(
     
     reg [3:0] a_state;
     reg [3:0] b_state;
-    
+
+    //checking button input
     always @(posedge clock) begin
         a_sync1 <= a_in;
         a_sync2 <= a_sync1;
@@ -29,8 +31,10 @@ module input_processing(
     end
     
     integer i;
-    
+
+    //main cleaning process
     always @(posedge clock) begin
+        //reset everything to zero
         if (reset) begin
             a_out <= 4'b0;
             a_state <= 4'b0;
@@ -43,9 +47,9 @@ module input_processing(
                 b_count[i] <= 20'd0;
             end
         end
-        else begin
+        else begin //if button state changes, counter checks if input is long enough (20 ms)
             for (i = 0; i < 4; i = i + 1) begin
-                if (a_sync2[i] != a_state[i]) begin
+                if (a_sync2[i] != a_state[i]) begin //player A input
                     if (a_count[i] < DB)
                         a_count[i] <= a_count[i] + 1'b1;
                     else begin
@@ -58,7 +62,7 @@ module input_processing(
                     a_count[i] <= 20'd0;
             end
             
-            for (i = 0; i < 4; i = i + 1) begin
+            for (i = 0; i < 4; i = i + 1) begin //player B input
                 if (b_sync2[i] != b_state[i]) begin
                     if (b_count[i] < DB)
                         b_count[i] <= b_count[i] + 1'b1;
