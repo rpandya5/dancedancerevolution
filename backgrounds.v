@@ -110,7 +110,7 @@ module idle_screen(
     defparam VGA.RESOLUTION = "160x120";
     defparam VGA.MONOCHROME = "FALSE";
     defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-    defparam VGA.BACKGROUND_IMAGE = "idle_img.mif";
+    defparam VGA.BACKGROUND_IMAGE = "../mif_imgs/idle_img.mif";
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -156,7 +156,7 @@ module pause_screen(
     defparam VGA.RESOLUTION = "160x120";
     defparam VGA.MONOCHROME = "FALSE";
     defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-    defparam VGA.BACKGROUND_IMAGE = "paused_img.mif";
+    defparam VGA.BACKGROUND_IMAGE = "../mif_imgs/paused_img.mif";
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -202,7 +202,7 @@ module countdown_screen(
     defparam VGA.RESOLUTION = "160x120";
     defparam VGA.MONOCHROME = "FALSE";
     defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-    defparam VGA.BACKGROUND_IMAGE = "5_img.mif";
+    defparam VGA.BACKGROUND_IMAGE = "../mif_imgs/5_img.mif";
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -248,7 +248,7 @@ module A_win_screen(
     defparam VGA.RESOLUTION = "160x120";
     defparam VGA.MONOCHROME = "FALSE";
     defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-    defparam VGA.BACKGROUND_IMAGE = "A_won_img.mif";
+    defparam VGA.BACKGROUND_IMAGE = "../mif_imgs/A_won_img.mif";
 endmodule
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -294,7 +294,7 @@ module B_win_screen(
     defparam VGA.RESOLUTION = "160x120";
     defparam VGA.MONOCHROME = "FALSE";
     defparam VGA.BITS_PER_COLOUR_CHANNEL = 1;
-    defparam VGA.BACKGROUND_IMAGE = "B_won_img.mif";
+    defparam VGA.BACKGROUND_IMAGE = "../mif_imgs/B_won_img.mif";
 endmodule
 
 // EXAMPLE OLD MODULE IN CASE ALL HELL BREAKS LOOSE
