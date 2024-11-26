@@ -9,7 +9,6 @@ module game_timer(
 );
 
     reg [6:0] seg7 [0:9];
-    
     reg [31:0] clock_counter;
     reg [5:0] seconds_left;
     
@@ -30,6 +29,7 @@ module game_timer(
         game_over = 0;
     end
 
+    //count clock cycles till 1 second passes, when 1 sec passes, decrease time until 0 (game over)
     always @(posedge CLOCK_50 or posedge reset) begin
         if (reset) begin
             clock_counter <= 0;
@@ -38,7 +38,7 @@ module game_timer(
         end
         else begin
             if (!game_over) begin
-                if (clock_counter >= 50000000) begin
+                if (clock_counter >= 50000000) begin //1 second passed
                     clock_counter <= 0;
                     if (seconds_left > 0)
                         seconds_left <= seconds_left - 1;
@@ -52,6 +52,7 @@ module game_timer(
         end
     end
 
+    //updating the display
     always @(posedge CLOCK_50) begin
         HEX5 <= seg7[seconds_left / 10];
         HEX4 <= seg7[seconds_left % 10];
